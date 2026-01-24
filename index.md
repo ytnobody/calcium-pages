@@ -3,6 +3,10 @@ layout: home
 title: Calcium Programming Language
 ---
 
+<p align="center">
+  <img src="assets/images/calcium-logo.png" alt="Calcium" width="200">
+</p>
+
 # Calcium
 
 > **Note:** This project is currently under active development. APIs and syntax may change without notice.
