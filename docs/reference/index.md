@@ -198,14 +198,14 @@ a < b < c;        // true if a < b and b < c
 | Operator | Description | Example |
 |----------|-------------|---------|
 | `&&` | Logical AND | `true && false` → `false` |
-| `&#124;&#124;` | Logical OR | `true &#124;&#124; false` → `true` |
+| <code>&#124;&#124;</code> | Logical OR | <code>true &#124;&#124; false</code> → `true` |
 | `!` | Logical NOT | `!true` → `false` |
 
 ### Pipeline
 
 | Operator | Description | Example |
 |----------|-------------|---------|
-| `&#124;>` | Pipeline | `5 &#124;> double` → `double(5)` |
+| <code>&#124;></code> | Pipeline | <code>5 &#124;> double</code> → `double(5)` |
 | `!>` | Effect pipeline | `"hi" !> io.println` |
 
 ### Other
@@ -213,7 +213,7 @@ a < b < c;        // true if a < b and b < c
 | Operator | Description | Example |
 |----------|-------------|---------|
 | `+` | String concatenation | `"a" + "b"` → `"ab"` |
-| `?` | Constraint check | `10 &#124;> Positive?` |
+| `?` | Constraint check | <code>10 &#124;> Positive?</code> |
 | `!?` | Result match | `result !? { ... }` |
 
 ---
