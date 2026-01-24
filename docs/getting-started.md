@@ -6,6 +6,8 @@ permalink: /docs/getting-started/
 
 # Getting Started with Calcium
 
+> **Note:** Calcium is under active development. Features and syntax may change.
+
 This guide will help you install Calcium and write your first program.
 
 ## Prerequisites

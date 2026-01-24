@@ -5,6 +5,8 @@ title: Calcium Programming Language
 
 # Calcium
 
+> **Note:** This project is currently under active development. APIs and syntax may change without notice.
+
 **A functional programming language with pipelines, pattern matching, and effect handling**
 
 ```calcium
