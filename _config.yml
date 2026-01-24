@@ -1,0 +1,35 @@
+title: Calcium
+description: A functional programming language with pipelines, pattern matching, and effect handling
+url: "https://ytnobody.github.io"
+baseurl: "/calcium-pages"
+
+theme: minima
+
+# Navigation
+header_pages:
+  - docs/getting-started.md
+  - docs/tutorial/index.md
+  - docs/modules/index.md
+  - docs/reference/index.md
+
+# Markdown settings
+markdown: kramdown
+highlighter: rouge
+
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+
+# Defaults
+defaults:
+  - scope:
+      path: "docs"
+      type: "pages"
+    values:
+      layout: "page"
+
+# Exclude from processing
+exclude:
+  - README.md
+  - Gemfile
+  - Gemfile.lock
