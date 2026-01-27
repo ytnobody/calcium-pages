@@ -212,7 +212,7 @@ a < b < c;        // true if a < b and b < c
 
 | Operator | Description | Example |
 |----------|-------------|---------|
-| `+` | String concatenation | `"a" + "b"` → `"ab"` |
+| `concat(a, b, ...)` | String concatenation | `concat("a", "b")` → `"ab"` |
 | `?` | Constraint check | <code>10 &#124;> Positive?</code> |
 | `!?` | Result match | `result !? { ... }` |
 
@@ -262,7 +262,7 @@ result = match condition
 func name(params) = expression;
 
 func add(a, b) = a + b;
-func greet(name) = "Hello, " + name;
+func greet(name) = concat("Hello, ", name);
 ```
 
 ### Effect Functions

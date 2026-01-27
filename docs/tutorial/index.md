@@ -73,7 +73,7 @@ true || false;  // true
 !true;          // false
 
 // String concatenation
-"Hello, " + "World!";  // "Hello, World!"
+concat("Hello, ", "World!");  // "Hello, World!"
 ```
 
 ### String Interpolation
@@ -98,7 +98,7 @@ func double(x) = x * 2;
 
 func add(a, b) = a + b;
 
-func greet(name) = "Hello, " + name + "!";
+func greet(name) = concat("Hello, ", name, "!");
 ```
 
 ### Lambda Expressions
@@ -113,18 +113,6 @@ add = (a, b) => a + b;
 // Using lambdas with higher-order functions
 numbers = [1, 2, 3, 4, 5];
 doubled = map(numbers, x => x * 2);  // [2, 4, 6, 8, 10]
-```
-
-### Closures
-
-Functions capture variables from their enclosing scope:
-
-```calcium
-func make_adder(n) = x => x + n;
-
-add5 = make_adder(5);
-add5(10);  // 15
-add5(20);  // 25
 ```
 
 ### Recursion
@@ -277,7 +265,7 @@ Functions with side effects are marked with `!`:
 use core.io!;
 
 // Define an effect function
-func! greet(name) = io.println("Hello, " + name);
+func! greet(name) = io.println(concat("Hello, ", name));
 
 // Call effect functions
 greet("World");
@@ -310,7 +298,7 @@ result = http.get("https://api.example.com/data", {});
 
 result !? {
     success(response) => io.println(response.body)
-    failure(error) => io.println("Error: " + error)
+    failure(error) => io.println(concat("Error: ", error))
 };
 ```
 

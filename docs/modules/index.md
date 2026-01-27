@@ -217,7 +217,7 @@ entry = "mod.ca"
 namespace mymodule;
 
 // Public functions (will be exported)
-func greet(name) = "Hello, " + name + "!";
+func greet(name) = concat("Hello, ", name, "!");
 
 func add(a, b) = a + b;
 

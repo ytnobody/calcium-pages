@@ -28,7 +28,7 @@ use core.io!;
 - **Pipeline Operator** (`|>`) - Chain function calls in a readable left-to-right style
 - **Effect Pipeline** (`!>`) - Chain side-effecting functions with automatic result wrapping
 - **Pattern Matching** - Powerful `match` expressions for control flow
-- **First-class Functions** - Lambda expressions and closures
+- **First-class Functions** - Lambda expressions
 - **Constraints** - Define and enforce value validation rules
 - **Result Types** - Built-in `success(value)` and `failure(error)` for error handling
 - **Module System** - External module support via Boneyard registry
@@ -40,7 +40,7 @@ use core.io!;
 ```bash
 # Clone the repository
 git clone https://github.com/ytnobody/calcium-lang.git
-cd calcium-lang/calcium
+cd calcium-lang
 
 # Build
 go build -o calcium ./cmd/calcium
