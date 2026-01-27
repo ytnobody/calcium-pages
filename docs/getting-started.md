@@ -21,7 +21,7 @@ This guide will help you install Calcium and write your first program.
 
 ```bash
 git clone https://github.com/ytnobody/calcium-lang.git
-cd calcium-lang/calcium
+cd calcium-lang
 ```
 
 ### 2. Build the Tools
@@ -41,7 +41,7 @@ go build -o bone ./cmd/bone
 export PATH=$PATH:$(pwd)
 
 # Or add to your shell profile (~/.bashrc, ~/.zshrc, etc.)
-echo 'export PATH=$PATH:/path/to/calcium-lang/calcium' >> ~/.bashrc
+echo 'export PATH=$PATH:/path/to/calcium-lang' >> ~/.bashrc
 ```
 
 ### 4. Verify Installation
