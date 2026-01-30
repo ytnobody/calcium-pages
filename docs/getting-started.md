@@ -10,21 +10,40 @@ permalink: /docs/getting-started/
 
 This guide will help you install Calcium and write your first program.
 
-## Prerequisites
-
-- Go 1.21 or later
-- Git
-
 ## Installation
 
-### 1. Clone the Repository
+### Option 1: Download Pre-built Binaries (Recommended)
+
+Download the latest release from [GitHub Releases](https://github.com/ytnobody/calcium-lang/releases).
+
+Available platforms:
+- Linux (amd64, arm64)
+- macOS (amd64, arm64)
+- Windows (amd64, arm64)
+
+After downloading, extract and add to your PATH:
+
+```bash
+# Example for Linux/macOS
+tar xzf calcium_*.tar.gz
+sudo mv calcium bone /usr/local/bin/
+```
+
+### Option 2: Build from Source
+
+#### Prerequisites
+
+- Go 1.22 or later
+- Git
+
+#### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/ytnobody/calcium-lang.git
 cd calcium-lang
 ```
 
-### 2. Build the Tools
+#### 2. Build the Tools
 
 ```bash
 # Build the Calcium interpreter
@@ -34,7 +53,7 @@ go build -o calcium ./cmd/calcium
 go build -o bone ./cmd/bone
 ```
 
-### 3. Add to PATH (Optional)
+#### 3. Add to PATH (Optional)
 
 ```bash
 # Add to current session
@@ -44,7 +63,7 @@ export PATH=$PATH:$(pwd)
 echo 'export PATH=$PATH:/path/to/calcium-lang' >> ~/.bashrc
 ```
 
-### 4. Verify Installation
+#### 4. Verify Installation
 
 ```bash
 calcium version
