@@ -10,6 +10,7 @@ header_pages:
   - docs/getting-started.md
   - docs/tutorial/index.md
   - docs/modules/index.md
+  - docs/stdlib/index.md
   - docs/reference/index.md
 
 # Markdown settings
