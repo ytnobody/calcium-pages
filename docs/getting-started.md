@@ -26,8 +26,10 @@ After downloading, extract and add to your PATH:
 ```bash
 # Example for Linux/macOS
 tar xzf calcium_*.tar.gz
-sudo mv calcium bone /usr/local/bin/
+sudo mv calcium bone calcium-lsp /usr/local/bin/
 ```
+
+> **Note:** `calcium-lsp` (LSP server for IDE integration) is included in the release archive.
 
 ### Option 2: Build from Source
 
@@ -51,6 +53,9 @@ go build -o calcium ./cmd/calcium
 
 # Build the bone package manager
 go build -o bone ./cmd/bone
+
+# Build the LSP server (optional, for IDE integration)
+go build -o calcium-lsp ./cmd/calcium-lsp
 ```
 
 #### 3. Add to PATH (Optional)

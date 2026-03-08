@@ -18,6 +18,10 @@ Learn Calcium step by step, from basics to advanced features.
 6. [Effects](06-effects.html) - Side effects and Result types
 7. [Constraints](07-constraints.html) - Value validation
 8. [Modules](08-modules.html) - Organizing code
+9. [Algebraic Data Types](#9-algebraic-data-types) - Variant types with pattern matching
+10. [do...end Blocks](#10-doend-blocks) - Multi-statement expressions
+11. [Gradual Typing](#11-gradual-typing) - Optional type annotations
+12. [Async Programming](#12-async-programming) - Concurrent tasks and channels
 
 ---
 
@@ -371,6 +375,126 @@ use mymodule;
 
 mymodule.hello();    // "Hello from mymodule!"
 mymodule.add(2, 3);  // 5
+```
+
+---
+
+## 9. Algebraic Data Types
+
+Algebraic Data Types (ADTs) let you define custom variant types:
+
+```calcium
+// Define variant types
+type Maybe = Some(value) | None;
+type Shape = Circle(radius) | Rectangle(width, height);
+
+// Create instances
+x = Some(42);
+y = None;
+
+// Pattern matching with ADT
+func describe(m) = match m
+  Some(v) => concat("Got: ", to_string(v))
+  None() => "Nothing";
+
+describe(Some(42));   // "Got: 42"
+describe(None);       // "Nothing"
+
+// Calculate area
+func area(shape) = match shape
+  Circle(r) => math.pi * r * r
+  Rectangle(w, h) => w * h;
+
+area(Circle(5));          // 78.539...
+area(Rectangle(3, 4));    // 12
+```
+
+---
+
+## 10. do...end Blocks
+
+`do...end` blocks allow multi-statement expressions with scoped bindings:
+
+```calcium
+// Block evaluates to the last expression
+result = do
+  x = 10
+  y = 20
+  x + y
+end;
+// result = 30
+
+// Use in function bodies for complex logic
+func classify_score(score) = do
+  grade = match score
+    s if s >= 90 => "A"
+    s if s >= 80 => "B"
+    s if s >= 70 => "C"
+    _ => "F"
+  pass = score >= 60
+  {grade: grade, pass: pass}
+end;
+
+classify_score(85);  // {grade: "B", pass: true}
+```
+
+---
+
+## 11. Gradual Typing
+
+Calcium supports optional type annotations for compile-time checking:
+
+```calcium
+// Annotate variables
+x: Int = 42;
+name: String = "Alice";
+
+// Annotate function parameters and return type
+func add(a: Int, b: Int): Int = a + b;
+func greet(name: String): String = "Hello, " + name;
+
+// Lambda with type annotations
+square = (x: Int): Int => x * x;
+
+add(1, 2);    // 3 (type checked)
+greet("Bob"); // "Hello, Bob"
+```
+
+Type annotations are optional - you can mix typed and untyped code freely.
+
+Available types: `Int`, `Float`, `String`, `Bool`, `Null`, `Array`, `Hash`, `Tuple`, `Func`, `Regex`, `Any`
+
+---
+
+## 12. Async Programming
+
+Calcium supports concurrent programming with task spawning and channels:
+
+```calcium
+use core.async!
+use core.schedule!
+use core.io!
+
+// Spawn parallel tasks
+results = async.all([
+    async.spawn(() => 10),
+    async.spawn(() => 20),
+    async.spawn(() => 30)
+]);  // [10, 20, 30]
+
+// Channels for message passing
+ch = async.channel();
+ch.send("hello");
+msg = ch.receive();  // "hello"
+
+// Event loop with timer
+result = async.stay(count: 0) {
+    src = schedule.timeout(1000);
+    handler = async.expects((event) => {
+        async.leave("done after 1 second");
+    }, src);
+    handler.ready();
+};
 ```
 
 ---
