@@ -27,6 +27,8 @@ jobs:
             --no-progress
             --timeout 30
             --max-retries 3
+            --scheme https
+            --scheme http
             --exclude 'localhost'
             --exclude '127\.0\.0\.1'
             --exclude 'ytnobody\.github\.io/calcium-pages'
