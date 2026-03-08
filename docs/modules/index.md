@@ -24,13 +24,18 @@ Learn how to use external modules with bone and publish your own to Boneyard.
 Calcium includes a built-in standard library:
 
 ```calcium
-use core.io!;      // Input/Output (effect module)
-use core.math;     // Mathematical functions
-use core.string;   // String manipulation
-use core.array;    // Array utilities
-use core.regex;    // Regular expressions
-use core.toml;     // TOML parsing
-use core.http!;    // HTTP client (effect module)
+use core.io!;        // Input/Output (effect module)
+use core.math;       // Mathematical functions
+use core.string;     // String manipulation
+use core.array;      // Array utilities
+use core.regex;      // Regular expressions
+use core.toml;       // TOML parsing
+use core.http!;      // HTTP client (effect module)
+use core.time;       // Date/time operations
+use core.os;         // Environment variables, CLI args
+use core.async!;     // Async tasks and channels (effect module)
+use core.schedule!;  // Timer event sources (effect module)
+use core.assert!;    // Testing assertions (effect module)
 ```
 
 ### External Modules
