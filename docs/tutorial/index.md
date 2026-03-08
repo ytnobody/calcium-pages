@@ -10,18 +10,18 @@ Learn Calcium step by step, from basics to advanced features.
 
 ## Contents
 
-1. [Basics](01-basics.html) - Variables, types, and operators
-2. [Functions](02-functions.html) - Defining and using functions
-3. [Pipelines](03-pipelines.html) - The pipeline operator
-4. [Pattern Matching](04-pattern-matching.html) - Match expressions
-5. [Collections](05-collections.html) - Arrays and hashes
-6. [Effects](06-effects.html) - Side effects and Result types
-7. [Constraints](07-constraints.html) - Value validation
-8. [Modules](08-modules.html) - Organizing code
-9. [Algebraic Data Types](#9-algebraic-data-types) - Variant types with pattern matching
+1. [Basics](#1-basics) - Variables, types, and operators
+2. [Functions](#2-functions) - Defining and using functions
+3. [Pipelines](#3-pipelines) - The pipeline operator
+4. [Pattern Matching](#4-pattern-matching) - Match expressions and guard clauses
+5. [Collections](#5-collections) - Arrays, hashes, and tuples
+6. [Effects](#6-effects) - Side effects and Result types
+7. [Constraints](#7-constraints) - Value validation
+8. [Modules](#8-modules) - Organizing code
+9. [Algebraic Data Types](#9-algebraic-data-types) - Variant types
 10. [do...end Blocks](#10-doend-blocks) - Multi-statement expressions
-11. [Gradual Typing](#11-gradual-typing) - Optional type annotations
-12. [Async Programming](#12-async-programming) - Concurrent tasks and channels
+11. [Type Annotations](#11-type-annotations) - Gradual typing
+12. [Async Programming](#12-async-programming) - Tasks and channels
 
 ---
 
@@ -47,6 +47,7 @@ pi = 3.14159;
 | String | `"hello"`, `'world'` | Text |
 | Boolean | `true`, `false` | Logical values |
 | Array | `[1, 2, 3]` | Ordered collection |
+| Tuple | `(1, "hello", true)` | Lightweight ordered collection |
 | Hash | `{name: "Alice"}` | Key-value pairs |
 | Null | `null` | Absence of value |
 
@@ -191,6 +192,23 @@ func fizzbuzz(n) = match [n % 3, n % 5]
     _ => to_string(n);
 ```
 
+### Guard Clauses
+
+Add conditions to match patterns with `if`:
+
+```calcium
+func classify(n) = match n
+  x if x > 0 => "positive"
+  x if x < 0 => "negative"
+  _ => "zero";
+
+func grade(score) = match score
+  s if s >= 90 => "A"
+  s if s >= 80 => "B"
+  s if s >= 70 => "C"
+  _ => "F";
+```
+
 ### Result Matching
 
 ```calcium
@@ -199,6 +217,17 @@ value = result !? {
     success(v) => v
     failure(e) => default_value
 };
+```
+
+### Error Propagation (`|>?`)
+
+Short-circuit pipelines on failure:
+
+```calcium
+// |>? unwraps success values and propagates failures
+func! process(data) =
+  data |>? parse_json |>? validate |>? save;
+  // If any step returns failure(), it short-circuits immediately
 ```
 
 ---
@@ -236,6 +265,27 @@ reduce(numbers, (a, b) => a + b, 0); // 15
 
 [first | rest] = [1, 2, 3, 4, 5];
 // first = 1, rest = [2, 3, 4, 5]
+```
+
+### Tuples
+
+Lightweight ordered collections:
+
+```calcium
+// Create tuples
+t = (1, 2, 3);
+mixed = (1, "hello", true);
+
+// Index access (0-based, negative indexing supported)
+t[0];     // 1
+t[-1];    // 3
+
+// Length
+len((1, 2, 3));  // 3
+
+// Pattern matching
+func sum_pair(p) = match p
+  (x, y) => x + y;
 ```
 
 ### Hashes
@@ -381,13 +431,18 @@ mymodule.add(2, 3);  // 5
 
 ## 9. Algebraic Data Types
 
-Algebraic Data Types (ADTs) let you define custom variant types:
+### Defining ADTs
+
+Define variant types with the `type` keyword:
 
 ```calcium
-// Define variant types
 type Maybe = Some(value) | None;
-type Shape = Circle(radius) | Rectangle(width, height);
+type Tree = Leaf(value) | Node(left, right);
+```
 
+### Creating and Using ADTs
+
+```calcium
 // Create instances
 x = Some(42);
 y = None;
@@ -397,26 +452,17 @@ func describe(m) = match m
   Some(v) => concat("Got: ", to_string(v))
   None() => "Nothing";
 
-describe(Some(42));   // "Got: 42"
-describe(None);       // "Nothing"
-
-// Calculate area
-func area(shape) = match shape
-  Circle(r) => math.pi * r * r
-  Rectangle(w, h) => w * h;
-
-area(Circle(5));          // 78.539...
-area(Rectangle(3, 4));    // 12
+describe(x);  // "Got: 42"
+describe(y);  // "Nothing"
 ```
 
 ---
 
 ## 10. do...end Blocks
 
-`do...end` blocks allow multi-statement expressions with scoped bindings:
+Multi-statement expressions with scoped variable bindings. The last expression is the block's value:
 
 ```calcium
-// Block evaluates to the last expression
 result = do
   x = 10
   y = 20
@@ -424,74 +470,86 @@ result = do
 end;
 // result = 30
 
-// Use in function bodies for complex logic
-func classify_score(score) = do
-  grade = match score
-    s if s >= 90 => "A"
-    s if s >= 80 => "B"
-    s if s >= 70 => "C"
-    _ => "F"
-  pass = score >= 60
-  {grade: grade, pass: pass}
+// In function bodies
+func calculate(n) = do
+  doubled = n * 2
+  doubled + 1
 end;
 
-classify_score(85);  // {grade: "B", pass: true}
+calculate(5);  // 11
 ```
 
 ---
 
-## 11. Gradual Typing
+## 11. Type Annotations
 
 Calcium supports optional type annotations for compile-time checking:
 
 ```calcium
-// Annotate variables
+// Variable type annotations
 x: Int = 42;
 name: String = "Alice";
+flag: Bool = true;
 
-// Annotate function parameters and return type
+// Function parameter and return type annotations
 func add(a: Int, b: Int): Int = a + b;
 func greet(name: String): String = "Hello, " + name;
 
-// Lambda with type annotations
+// Lambda type annotations
 square = (x: Int): Int => x * x;
 
-add(1, 2);    // 3 (type checked)
-greet("Bob"); // "Hello, Bob"
+// Available types: Int, Float, String, Bool, Null, Array, Hash, Tuple, Func, Regex, Any
 ```
 
-Type annotations are optional - you can mix typed and untyped code freely.
-
-Available types: `Int`, `Float`, `String`, `Bool`, `Null`, `Array`, `Hash`, `Tuple`, `Func`, `Regex`, `Any`
+Type annotations are completely optional. Code without annotations works as before.
 
 ---
 
 ## 12. Async Programming
 
-Calcium supports concurrent programming with task spawning and channels:
+### Spawning Tasks
 
 ```calcium
-use core.async!
-use core.schedule!
-use core.io!
+use core.async!;
 
-// Spawn parallel tasks
+task = async.spawn(() => compute_something());
+task.status;   // "pending", "running", "completed", "failed", "cancelled"
+task.result;   // Result value when completed
+```
+
+### Waiting for Multiple Tasks
+
+```calcium
+use core.async!;
+
 results = async.all([
     async.spawn(() => 10),
     async.spawn(() => 20),
     async.spawn(() => 30)
-]);  // [10, 20, 30]
+]);  // Returns [10, 20, 30]
+```
 
-// Channels for message passing
-ch = async.channel();
-ch.send("hello");
-msg = ch.receive();  // "hello"
+### Channels
 
-// Event loop with timer
+```calcium
+use core.async!;
+
+ch = async.channel();      // Unbuffered channel
+ch = async.channel(10);    // Buffered channel with capacity 10
+ch.send(value);            // Send message
+ch.receive();              // Receive message
+```
+
+### Event Loops
+
+```calcium
+use core.async!;
+use core.schedule!;
+
 result = async.stay(count: 0) {
     src = schedule.timeout(1000);
     handler = async.expects((event) => {
-        async.leave("done after 1 second");
+        async.leave("done");   // Exit loop with value
     }, src);
     handler.ready();
 };
@@ -503,3 +561,4 @@ result = async.stay(count: 0) {
 
 - [Modules Guide](../modules/) - Learn about bone and Boneyard
 - [Language Reference](../reference/) - Complete specification
+- [Standard Library](../stdlib/) - All modules and built-in functions

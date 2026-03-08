@@ -6,25 +6,24 @@ permalink: /docs/reference/
 
 # Language Reference
 
-Complete specification of the Calcium programming language.
+Complete specification of the Calcium programming language (v0.2.0).
 
 ## Contents
 
 1. [Lexical Structure](#lexical-structure)
 2. [Types](#types)
-3. [Operators](#operators)
-4. [Control Flow](#control-flow)
-5. [Functions](#functions)
-6. [do...end Blocks](#doend-blocks)
+3. [Gradual Typing](#gradual-typing)
+4. [Operators](#operators)
+5. [Control Flow](#control-flow)
+6. [Functions](#functions)
 7. [Algebraic Data Types](#algebraic-data-types)
-8. [Constraints](#constraints)
-9. [Gradual Typing](#gradual-typing)
-10. [Async & Channels](#async--channels)
-11. [Modules](#modules)
-12. [Standard Library](#standard-library)
-13. [Built-in Functions](#built-in-functions)
-14. [CLI Reference](#cli-reference)
-15. [Compiler Optimization](#compiler-optimization)
+8. [do...end Blocks](#doend-blocks)
+9. [Constraints](#constraints)
+10. [Modules](#modules)
+11. [Standard Library](#standard-library)
+12. [Built-in Functions](#built-in-functions)
+13. [Developer Tools](#developer-tools)
+14. [Compiler Optimization](#compiler-optimization)
 
 ---
 
@@ -66,8 +65,8 @@ name123
 ### Keywords
 
 ```
-func  func!  constraint  type  namespace  use  match
-do  end  true  false  null  success  failure
+func  func!  constraint  namespace  use  match  type  do  end
+true  false  null  success  failure
 ```
 
 ---
@@ -89,8 +88,8 @@ do  end  true  false  null  success  failure
 | Type | Examples | Description |
 |------|----------|-------------|
 | Array | `[1, 2, 3]` | Ordered collection |
-| Tuple | `(1, "hello", true)` | Ordered, fixed-size collection |
 | Hash | `{a: 1, b: 2}` | Key-value pairs |
+| Tuple | `(1, "hello", true)` | Lightweight ordered collection |
 | Function | `x => x * 2` | First-class functions |
 | Result | `success(42)`, `failure("error")` | Success or failure |
 
@@ -106,7 +105,7 @@ name = "World";
 // Single-quoted (no interpolation)
 '{"key": "value"}';
 
-// Heredoc (triple-quoted, multi-line)
+// Heredoc (multi-line)
 text = """
 Line 1
 Line 2
@@ -114,11 +113,46 @@ Line 3
 """;
 ```
 
+### String Interpolation
+
+Embed expressions in double-quoted strings using `${...}`:
+
+```calcium
+use core.io!
+
+name = "World";
+"Hello, ${name}!" !> io.println;  // Hello, World!
+
+x = 10;
+y = 20;
+"${x} + ${y} = ${x + y}" !> io.println;  // 10 + 20 = 30
+
+arr = [1, 2, 3];
+"Array: ${arr}, length: ${len(arr)}" !> io.println;
+// Array: [1, 2, 3], length: 3
+```
+
 Note: Single-quoted strings and heredocs do not support interpolation.
+
+### Arrays
+
+```calcium
+empty = [];
+numbers = [1, 2, 3, 4, 5];
+mixed = [1, "two", true, [3, 4]];
+
+// Access
+numbers[0];    // 1
+numbers[-1];   // 5 (last element)
+
+// Destructuring
+[a, b, c] = [1, 2, 3];
+[head | tail] = [1, 2, 3, 4];  // head = 1, tail = [2, 3, 4]
+```
 
 ### Tuples
 
-Lightweight ordered collections with fixed size:
+Lightweight ordered collections:
 
 ```calcium
 // Create tuples
@@ -138,22 +172,6 @@ len((1, 2, 3));  // 3
 // Pattern matching
 func sum_pair(p) = match p
   (x, y) => x + y;
-```
-
-### Arrays
-
-```calcium
-empty = [];
-numbers = [1, 2, 3, 4, 5];
-mixed = [1, "two", true, [3, 4]];
-
-// Access
-numbers[0];    // 1
-numbers[-1];   // 5 (last element)
-
-// Destructuring
-[a, b, c] = [1, 2, 3];
-[head | tail] = [1, 2, 3, 4];  // head = 1, tail = [2, 3, 4]
 ```
 
 ### Hashes
@@ -179,6 +197,11 @@ user = {
     settings: {theme: "dark"}
 };
 user.profile.name;  // "Bob"
+
+// Built-in hash functions
+keys(person);      // ["name", "age", "active"]
+values(person);    // ["Alice", 30, true]
+len(person);       // 3
 ```
 
 ### Result Type
@@ -197,33 +220,74 @@ result !? {
 
 ---
 
+## Gradual Typing
+
+Calcium supports optional type annotations with compile-time checking:
+
+```calcium
+// Variable type annotations
+x: Int = 42;
+name: String = "Alice";
+flag: Bool = true;
+
+// Function parameter and return type annotations
+func add(a: Int, b: Int): Int = a + b;
+func greet(name: String): String = "Hello, " + name;
+
+// Lambda type annotations
+square = (x: Int): Int => x * x;
+```
+
+### Available Types
+
+| Type | Description |
+|------|-------------|
+| `Int` | Integer values |
+| `Float` | Floating-point values |
+| `String` | String values |
+| `Bool` | Boolean values |
+| `Null` | Null value |
+| `Array` | Array values |
+| `Hash` | Hash values |
+| `Tuple` | Tuple values |
+| `Func` | Function values |
+| `Regex` | Regular expression values |
+| `Any` | Any type (opt out of type checking) |
+| `Result` | Result type |
+| `Success` | Success result |
+| `Failure` | Failure result |
+
+Type annotations are optional. Code without annotations continues to work as before.
+
+---
+
 ## Operators
 
 ### Arithmetic
 
 | Operator | Description | Example |
 |----------|-------------|---------|
-| `+` | Addition | `5 + 3` → `8` |
-| `-` | Subtraction | `10 - 4` → `6` |
-| `*` | Multiplication | `3 * 4` → `12` |
-| `/` | Division | `15 / 3` → `5` |
-| `%` | Modulo | `17 % 5` → `2` |
+| `+` | Addition | `5 + 3` -> `8` |
+| `-` | Subtraction | `10 - 4` -> `6` |
+| `*` | Multiplication | `3 * 4` -> `12` |
+| `/` | Division | `15 / 3` -> `5` |
+| `%` | Modulo | `17 % 5` -> `2` |
 
 ### Comparison
 
 | Operator | Description | Example |
 |----------|-------------|---------|
-| `==` | Equal | `5 == 5` → `true` |
-| `!=` | Not equal | `5 != 3` → `true` |
-| `<` | Less than | `3 < 5` → `true` |
-| `<=` | Less or equal | `3 <= 3` → `true` |
-| `>` | Greater than | `5 > 3` → `true` |
-| `>=` | Greater or equal | `5 >= 5` → `true` |
+| `==` | Equal | `5 == 5` -> `true` |
+| `!=` | Not equal | `5 != 3` -> `true` |
+| `<` | Less than | `3 < 5` -> `true` |
+| `<=` | Less or equal | `3 <= 3` -> `true` |
+| `>` | Greater than | `5 > 3` -> `true` |
+| `>=` | Greater or equal | `5 >= 5` -> `true` |
 
 **Chained comparisons:**
 
 ```calcium
-0 <= x <= 100;    // true if 0 ≤ x ≤ 100
+0 <= x <= 100;    // true if 0 <= x <= 100
 a < b < c;        // true if a < b and b < c
 ```
 
@@ -231,34 +295,23 @@ a < b < c;        // true if a < b and b < c
 
 | Operator | Description | Example |
 |----------|-------------|---------|
-| `&&` | Logical AND | `true && false` → `false` |
-| <code>&#124;&#124;</code> | Logical OR | <code>true &#124;&#124; false</code> → `true` |
-| `!` | Logical NOT | `!true` → `false` |
+| `&&` | Logical AND | `true && false` -> `false` |
+| <code>&#124;&#124;</code> | Logical OR | <code>true &#124;&#124; false</code> -> `true` |
+| `!` | Logical NOT | `!true` -> `false` |
 
 ### Pipeline
 
 | Operator | Description | Example |
 |----------|-------------|---------|
-| <code>&#124;></code> | Pipeline | <code>5 &#124;> double</code> → `double(5)` |
+| <code>&#124;></code> | Pipeline | <code>5 &#124;> double</code> -> `double(5)` |
 | `!>` | Effect pipeline | `"hi" !> io.println` |
-| <code>&#124;>?</code> | Error propagation pipeline | <code>data &#124;>? parse</code> |
-
-**Error Propagation (`|>?`):**
-
-`|>?` unwraps `success` values and short-circuits on `failure`:
-
-```calcium
-// Chain multiple fallible operations
-func! process(data) =
-  data |>? parse_json |>? validate |>? save;
-  // If any step returns failure(), the pipeline short-circuits immediately
-```
+| <code>&#124;>?</code> | Error propagation | Unwraps success, propagates failure |
 
 ### Other
 
 | Operator | Description | Example |
 |----------|-------------|---------|
-| `concat(a, b, ...)` | String concatenation | `concat("a", "b")` → `"ab"` |
+| `concat(a, b, ...)` | String concatenation | `concat("a", "b")` -> `"ab"` |
 | `?` | Constraint check | <code>10 &#124;> Positive?</code> |
 | `!?` | Result match | `result !? { ... }` |
 
@@ -281,10 +334,6 @@ match [x, y]
     [0, _] => "on y-axis"
     [_, 0] => "on x-axis"
     _ => "elsewhere";
-
-// Tuple matching
-func sum_pair(p) = match p
-    (x, y) => x + y;
 
 // Result matching
 result !? {
@@ -319,6 +368,23 @@ result = match condition
     false => else_value;
 ```
 
+### ADT Pattern Matching
+
+```calcium
+type Maybe = Some(value) | None;
+
+func describe(m) = match m
+  Some(v) => concat("Got: ", to_string(v))
+  None() => "Nothing";
+```
+
+### Tuple Pattern Matching
+
+```calcium
+func sum_pair(p) = match p
+  (x, y) => x + y;
+```
+
 ---
 
 ## Functions
@@ -330,17 +396,20 @@ func name(params) = expression;
 
 func add(a, b) = a + b;
 func greet(name) = concat("Hello, ", name);
+
+// With type annotations
+func add(a: Int, b: Int): Int = a + b;
 ```
 
 ### Effect Functions
-
-Effect functions (`func!`) perform side effects and automatically wrap their return value in `success()`:
 
 ```calcium
 func! name(params) = expression;
 
 func! log(msg) = io.println(msg);
 ```
+
+Effect functions (`func!`) perform side effects and automatically wrap their return value in `success()`.
 
 ### Lambda Expressions
 
@@ -353,6 +422,33 @@ add = (a, b) => a + b;
 
 // No parameters
 getTime = () => current_time();
+
+// With type annotations
+square = (x: Int): Int => x * x;
+```
+
+### Recursion
+
+```calcium
+func factorial(n) = match n
+    0 => 1
+    _ => n * factorial(n - 1);
+
+func fib(n) = match n
+    0 => 0
+    1 => 1
+    _ => fib(n - 1) + fib(n - 2);
+```
+
+### Tail Call Optimization
+
+Calcium automatically optimizes tail-recursive functions for constant stack usage:
+
+```calcium
+// This function uses constant stack space thanks to TCO
+func sum_helper(arr, acc) = match len(arr)
+    0 => acc
+    _ => sum_helper(tail(arr), acc + head(arr));
 ```
 
 ### Closures
@@ -366,34 +462,60 @@ add5 = make_adder(5);
 add5(10);  // 15
 ```
 
-### Recursion
-
-Tail Call Optimization (TCO) is applied automatically for tail-recursive functions:
-
-```calcium
-func factorial(n) = match n
-    0 => 1
-    _ => n * factorial(n - 1);
-
-func fib(n) = match n
-    0 => 0
-    1 => 1
-    _ => fib(n - 1) + fib(n - 2);
-```
-
 ### Partial Application
 
-`map`, `filter`, and `reduce` work seamlessly with pipelines using `x |> f(y)` = `f(x, y)`:
+`map`, `filter`, and `reduce` work seamlessly with pipelines:
 
 ```calcium
-// Direct call
+// Direct call: map(arr, fn)
 map([1, 2, 3], x => x * 2);  // [2, 4, 6]
 
-// Pipeline
+// Pipeline: arr |> map(fn) becomes map(arr, fn)
 [1, 2, 3, 4, 5]
     |> filter(x => x > 2)
     |> map(x => x * 10)
     !> io.println;  // [30, 40, 50]
+```
+
+### Constraints in Parameters
+
+```calcium
+constraint Positive(n) = n > 0;
+
+func safe_sqrt(x: Positive?) = math.sqrt(x);
+
+safe_sqrt(16);   // success(4)
+safe_sqrt(-1);   // failure(-1)
+```
+
+### Variable Immutability
+
+Variables are immutable. Once bound, they cannot be reassigned:
+
+```calcium
+x = 42;
+// x = 100;  // Compile error: cannot reassign variable
+```
+
+---
+
+## Algebraic Data Types
+
+Define variant types with the `type` keyword:
+
+```calcium
+// Define variant types
+type Maybe = Some(value) | None;
+type Tree = Leaf(value) | Node(left, right);
+
+// Create instances
+x = Some(42);
+y = None;
+
+// Pattern matching with ADT
+func describe(m) = match m
+  Some(v) => concat("Got: ", to_string(v))
+  None() => "Nothing";
 ```
 
 ---
@@ -417,47 +539,22 @@ func calculate(n) = do
 end;
 ```
 
-The value of a `do...end` block is the last expression in the block.
-
----
-
-## Algebraic Data Types
-
-Define variant types with `type`:
-
-```calcium
-// Define variant types
-type Maybe = Some(value) | None;
-type Tree = Leaf(value) | Node(left, right);
-
-// Create instances
-x = Some(42);
-y = None;
-
-// Pattern matching with ADT
-func describe(m) = match m
-  Some(v) => concat("Got: ", to_string(v))
-  None() => "Nothing";
-
-// Recursive ADT
-func depth(tree) = match tree
-  Leaf(_) => 1
-  Node(l, r) => 1 + (match (depth(l) > depth(r))
-    true => depth(l)
-    false => depth(r));
-```
+The last expression in a `do...end` block is the block's value.
 
 ---
 
 ## Constraints
 
-Constraints define validation rules that can be checked at runtime:
+### Defining Constraints
 
 ```calcium
-// Define a constraint
 constraint Positive(n) = n > 0;
 constraint InRange(n) = 0 <= n <= 100;  // Chained comparisons supported
+```
 
+### Using Constraints
+
+```calcium
 // Check constraint with pipe: returns success(value) or failure(value)
 10 |> Positive?;   // success(10)
 -5 |> Positive?;   // failure(-5)
@@ -472,64 +569,18 @@ safe_divide(10, -1);  // failure(-1)
 
 ---
 
-## Gradual Typing
+## Error Propagation (`|>?`)
 
-Optional type annotations for compile-time checking:
-
-```calcium
-// Variable type annotations
-x: Int = 42;
-name: String = "Alice";
-flag: Bool = true;
-
-// Function parameter and return type annotations
-func add(a: Int, b: Int): Int = a + b;
-func greet(name: String): String = "Hello, " + name;
-
-// Lambda type annotations
-square = (x: Int): Int => x * x;
-```
-
-**Available types:** `Int`, `Float`, `String`, `Bool`, `Null`, `Array`, `Hash`, `Tuple`, `Func`, `Regex`, `Any`
-
-**Result types:** `Result`, `Success`, `Failure`
-
----
-
-## Async & Channels
-
-Event-driven async programming with task spawning and message passing:
+The `|>?` operator short-circuits pipelines on failure:
 
 ```calcium
-use core.async!
-use core.schedule!
+// |>? unwraps success values and propagates failures
+result = 5 |>? wrap_success;  // Unwraps success, continues
 
-// Spawn tasks for parallel execution
-task = async.spawn(() => compute_something());
-task.status;   // "pending", "running", "completed", "failed", "cancelled"
-task.result;   // Result value when completed
-
-// Wait for multiple tasks
-results = async.all([
-    async.spawn(() => 10),
-    async.spawn(() => 20),
-    async.spawn(() => 30)
-]);  // Returns [10, 20, 30]
-
-// Channels for message passing
-ch = async.channel();      // Unbuffered channel
-ch = async.channel(10);    // Buffered channel with capacity 10
-ch.send(value);            // Send message
-ch.receive();              // Receive message
-
-// Event loop with handlers
-result = async.stay(count: 0) {
-    src = schedule.timeout(1000);
-    handler = async.expects((event) => {
-        async.leave("done");   // Exit loop with value
-    }, src);
-    handler.ready();
-};
+// Chain multiple fallible operations
+func! process(data) =
+  data |>? parse_json |>? validate |>? save;
+  // If any step returns failure(), it short-circuits immediately
 ```
 
 ---
@@ -569,10 +620,10 @@ func _private_function() = "not exported";
 
 | Function | Description |
 |----------|-------------|
-| `io.println(value)` | Print value with newline |
-| `io.print(value)` | Print value without newline |
+| `io.println(value)` | Print with newline |
+| `io.print(value)` | Print without newline |
 | `io.read_file(path)` | Read file contents |
-| `io.write_file(path, content)` | Write content to file |
+| `io.write_file(path, content)` | Write to file |
 | `io.read_lines(path)` | Read file as array of lines |
 | `io.write_lines(path, lines)` | Write array of lines to file |
 | `io.list_dir(path)` | List directory contents |
@@ -586,93 +637,93 @@ func _private_function() = "not exported";
 
 | Function | Description |
 |----------|-------------|
-| `math.pi` | Pi constant (3.14159...) |
-| `math.e` | Euler's number (2.71828...) |
+| `math.pi` | Pi constant |
+| `math.e` | Euler's number |
 | `math.abs(n)` | Absolute value |
 | `math.floor(n)` | Round down |
 | `math.ceil(n)` | Round up |
-| `math.round(n)` | Round to nearest integer |
+| `math.round(n)` | Round to nearest |
 | `math.sqrt(n)` | Square root |
 | `math.pow(base, exp)` | Exponentiation |
-| `math.min(a, b)` | Minimum of two values |
-| `math.max(a, b)` | Maximum of two values |
-| `math.clamp(n, min, max)` | Clamp value to range |
-| `math.sin(n)`, `math.cos(n)`, `math.tan(n)` | Trigonometric functions |
+| `math.min(a, b)` | Minimum |
+| `math.max(a, b)` | Maximum |
+| `math.clamp(n, min, max)` | Clamp to range |
+| `math.sin(n)`, `math.cos(n)`, `math.tan(n)` | Trigonometry |
 
 ### core.string
 
 | Function | Description |
 |----------|-------------|
 | `string.length(s)` | String length |
-| `string.trim(s)` | Remove leading/trailing whitespace |
-| `string.upper(s)` | Convert to uppercase |
-| `string.lower(s)` | Convert to lowercase |
-| `string.split(s, sep)` | Split string by separator |
-| `string.join(arr, sep)` | Join array with separator |
-| `string.contains(s, sub)` | Check if contains substring |
+| `string.trim(s)` | Remove whitespace |
+| `string.upper(s)` | Uppercase |
+| `string.lower(s)` | Lowercase |
+| `string.split(s, sep)` | Split by separator |
+| `string.join(arr, sep)` | Join with separator |
+| `string.contains(s, sub)` | Contains substring |
 | `string.starts_with(s, prefix)` | Check prefix |
 | `string.ends_with(s, suffix)` | Check suffix |
-| `string.replace(s, old, new)` | Replace all occurrences |
-| `string.substring(s, start, end)` | Extract substring |
-| `string.index_of(s, sub)` | Find substring position |
-| `string.char_at(s, index)` | Get character at index |
-| `string.repeat(s, n)` | Repeat string n times |
-| `string.pad_left(s, len, char)` | Pad on left |
-| `string.pad_right(s, len, char)` | Pad on right |
+| `string.replace(s, old, new)` | Replace all |
+| `string.substring(s, start, end)` | Extract portion |
+| `string.index_of(s, sub)` | Find position |
+| `string.char_at(s, i)` | Character at index |
+| `string.repeat(s, n)` | Repeat n times |
+| `string.pad_left(s, len, char)` | Pad left |
+| `string.pad_right(s, len, char)` | Pad right |
 
 ### core.array
 
 | Function | Description |
 |----------|-------------|
-| `array.reverse(arr)` | Reverse an array |
-| `array.sum(arr)` | Sum all elements |
-| `array.product(arr)` | Product of all elements |
-| `array.take(arr, n)` | Take first n elements |
-| `array.drop(arr, n)` | Drop first n elements |
+| `array.reverse(arr)` | Reverse array |
+| `array.sum(arr)` | Sum elements |
+| `array.product(arr)` | Product of elements |
+| `array.take(arr, n)` | First n elements |
+| `array.drop(arr, n)` | Remove first n |
 | `array.slice(arr, start, end)` | Extract portion |
-| `array.flatten(arr)` | Flatten nested array |
+| `array.flatten(arr)` | Flatten nested |
 | `array.unique(arr)` | Remove duplicates |
-| `array.zip(arr1, arr2)` | Combine two arrays into pairs |
-| `array.index_of(arr, elem)` | Find element position |
-| `array.find(arr, pred)` | Find first matching element |
-| `array.any(arr, pred)` | Check if any element matches |
-| `array.all(arr, pred)` | Check if all elements match |
-| `array.count(arr, pred)` | Count matching elements |
+| `array.zip(arr1, arr2)` | Combine into pairs |
+| `array.index_of(arr, elem)` | Find position |
+| `array.find(arr, pred)` | Find matching |
+| `array.any(arr, pred)` | Any matches? |
+| `array.all(arr, pred)` | All match? |
+| `array.count(arr, pred)` | Count matches |
 | `array.partition(arr, pred)` | Split by predicate |
-| `array.chunk(arr, n)` | Split into chunks of size n |
-| `array.sort(arr)` | Sort array in ascending order |
-| `array.sort_by(arr, cmp)` | Sort with custom comparison function |
+| `array.chunk(arr, n)` | Split into chunks |
+| `array.sort(arr)` | Sort ascending |
+| `array.sort_by(arr, cmp)` | Custom sort |
 
 ### core.regex
 
 | Function | Description |
 |----------|-------------|
-| `regex.matches(s, pattern)` | Test if pattern matches |
-| `regex.find(s, pattern)` | Find first match |
-| `regex.find_all(s, pattern)` | Find all matches |
-| `regex.replace(s, pattern, replacement)` | Replace all matches |
-| `regex.replace_first(s, pattern, replacement)` | Replace first match only |
+| `regex.matches(s, pattern)` | Test if matches |
+| `regex.find(s, pattern)` | First match |
+| `regex.find_all(s, pattern)` | All matches |
+| `regex.replace(s, pattern, repl)` | Replace all |
+| `regex.replace_first(s, pattern, repl)` | Replace first |
 | `regex.split(s, pattern)` | Split by pattern |
-| `regex.capture(s, pattern)` | Extract capture groups |
+| `regex.capture(s, pattern)` | Capture groups |
 
 ### core.toml
 
 | Function | Description |
 |----------|-------------|
-| `toml.parse(s)` | Parse TOML string to hash |
-| `toml.stringify(hash)` | Convert hash to TOML string |
+| `toml.parse(s)` | Parse TOML string |
+| `toml.stringify(hash)` | Convert to TOML |
 
 ### core.http!
 
 | Function | Description |
 |----------|-------------|
 | `http.get(url, headers)` | GET request |
-| `http.post(url, body, content_type, headers)` | POST request |
-| `http.put(url, body, content_type, headers)` | PUT request |
+| `http.post(url, body, type, headers)` | POST request |
+| `http.put(url, body, type, headers)` | PUT request |
 | `http.del(url, headers)` | DELETE request |
 | `http.request(options)` | Custom request |
-| `http.post_json(url, data)` | POST with JSON content type |
-| `http.post_form(url, data)` | POST with form content type |
+| `http.post_json(url, data)` | POST JSON |
+| `http.post_form(url, data)` | POST form |
 
 ### core.time
 
@@ -688,7 +739,7 @@ func _private_function() = "not exported";
 | `time.parse(str, layout)` | Parse string to timestamp |
 | `time.from_iso(str)` | Parse ISO 8601 string |
 | `time.from_date(str)` | Parse YYYY-MM-DD string |
-| `time.components(ts)` | Get `{year, month, day, hour, minute, second, weekday}` |
+| `time.components(ts)` | Get date/time components as hash |
 | `time.year(ts)`, `time.month(ts)`, `time.day_of(ts)` | Get date components |
 | `time.hour_of(ts)`, `time.minute_of(ts)`, `time.second_of(ts)` | Get time components |
 | `time.weekday(ts)` | Get weekday (0=Sunday) |
@@ -704,11 +755,11 @@ func _private_function() = "not exported";
 | Function | Description |
 |----------|-------------|
 | `os.env(name)` | Get environment variable (returns Result) |
-| `os.set_env(name, value)` | Set environment variable (effect) |
-| `os.unset_env(name)` | Unset environment variable (effect) |
+| `os.set_env(name, value)` | Set environment variable |
+| `os.unset_env(name)` | Unset environment variable |
 | `os.env_all()` | Get all environment variables as hash |
 | `os.args()` | Get command-line arguments |
-| `os.exit(code)` | Terminate process with exit code (effect) |
+| `os.exit(code)` | Terminate process with exit code |
 
 ### core.async!
 
@@ -765,100 +816,76 @@ func _private_function() = "not exported";
 
 | Function | Description |
 |----------|-------------|
-| `map(arr, fn)` | Apply function to each element |
-| `filter(arr, pred)` | Keep elements matching predicate |
-| `reduce(arr, fn, init)` | Fold array to single value |
-| `range(start, end)` | Generate array of integers |
-| `len(x)` | Get length of array/string/hash/tuple |
+| `map(arr, fn)` | Apply to each |
+| `filter(arr, pred)` | Keep matching |
+| `reduce(arr, fn, init)` | Fold to value |
+| `range(start, end)` | Generate range |
+| `len(x)` | Length of array/string/hash/tuple |
 | `concat(a, b)` | Concatenate arrays or strings |
+| `to_string(value)` | Convert to string |
 
 ### Array Operations
 
 | Function | Description |
 |----------|-------------|
-| `head(arr)` | Get first element |
-| `tail(arr)` | Get all but first element |
-| `push(arr, elem)` | Append element to array |
-| `get(collection, key)` | Get element by key/index |
+| `head(arr)` | First element |
+| `tail(arr)` | All but first |
+| `push(arr, elem)` | Append element |
+| `get(collection, key)` | Get by key/index |
 
 ### Hash Operations
 
 | Function | Description |
 |----------|-------------|
-| `keys(hash)` | Get all keys from hash |
-| `values(hash)` | Get all values from hash |
-| `has(hash, key)` | Check if hash has key |
-
-### Type Conversion
-
-| Function | Description |
-|----------|-------------|
-| `to_string(value)` | Convert any value to string |
+| `keys(hash)` | All keys |
+| `values(hash)` | All values |
+| `has(hash, key)` | Has key? |
 
 ### Result Constructors
 
 | Function | Description |
 |----------|-------------|
-| `success(value)` | Wrap value in success |
-| `failure(error)` | Wrap error in failure |
+| `success(value)` | Wrap in success |
+| `failure(error)` | Wrap in failure |
 
 ---
 
-## CLI Reference
+## Developer Tools
 
-### calcium
+### Formatter (`calcium fmt`)
+
+Automatically format Calcium source code:
 
 ```bash
-# Run a program
-calcium program.ca
-calcium run program.ca
+calcium fmt program.ca            # Format in-place
+calcium fmt file1.ca file2.ca     # Format multiple files
+calcium fmt --check program.ca    # Check without modifying (exits 1 if changes needed)
+```
 
-# Compile to bytecode
-calcium compile program.ca -o program.bone
+### LSP Server (`calcium-lsp`)
 
-# Run compiled bytecode
-calcium run program.bone
+Language Server Protocol support for IDE integration:
 
-# Run tests
-calcium test ./tests     # Run all .test.ca files in directory
+```bash
+calcium-lsp                            # Start LSP server (stdio)
+calcium-lsp --log /tmp/calcium-lsp.log # With debug logging
+```
 
-# Start interactive REPL (with history, multi-line support)
+**Capabilities:** diagnostics, go-to definition, find references, hover, workspace symbols, code completion.
+
+### REPL
+
+Interactive Read-Eval-Print Loop with enhanced features:
+
+```bash
 calcium repl
-
-# Format source code
-calcium fmt program.ca
-calcium fmt --check program.ca   # Check without modifying
-
-# Start LSP server (for IDE integration)
-calcium-lsp
-calcium-lsp --log /tmp/calcium-lsp.log
-
-# Show version
-calcium version
 ```
 
-### bone
-
-```bash
-# Initialize project
-bone init [name]
-
-# Manage modules
-bone add author/module[@version]
-bone add --global author/module
-bone remove author/module
-bone list
-bone update [module]
-
-# Configuration
-bone config
-bone config get key
-bone config set key value
-
-# Help
-bone help
-bone version
-```
+- **Command history** saved to `~/.calcium_history` (Up/Down arrows)
+- **Multi-line input** with automatic continuation for unclosed brackets
+- **Startup script** loads `~/.calciumrc` automatically
+- **Readline support** (Ctrl+A, Ctrl+E, etc.)
+- **Ctrl+C** cancels multi-line input, **Ctrl+D** exits
 
 ---
 
@@ -883,4 +910,61 @@ Calcium includes an optimizer with multiple optimization levels:
 ```bash
 # Compile with maximum optimization
 calcium compile -O2 program.ca -o program.bone
+```
+
+---
+
+## CLI Reference
+
+### calcium
+
+```bash
+# Run a program
+calcium program.ca
+calcium run program.ca
+
+# Compile to bytecode
+calcium compile program.ca -o program.bone
+
+# Run bytecode
+calcium run program.bone
+
+# Run tests
+calcium test ./tests
+
+# REPL
+calcium repl
+
+# Format source code
+calcium fmt program.ca
+calcium fmt --check program.ca
+
+# Start LSP server
+calcium-lsp
+
+# Version
+calcium version
+```
+
+### bone
+
+```bash
+# Initialize project
+bone init [name]
+
+# Manage modules
+bone add author/module[@version]
+bone add --global author/module
+bone remove author/module
+bone list
+bone update [module]
+
+# Configuration
+bone config
+bone config get key
+bone config set key value
+
+# Help
+bone help
+bone version
 ```

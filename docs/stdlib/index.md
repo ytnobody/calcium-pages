@@ -6,7 +6,7 @@ permalink: /docs/stdlib/
 
 # Standard Library Reference
 
-Comprehensive reference for Calcium's standard library modules and built-in functions.
+Comprehensive reference for Calcium's standard library modules and built-in functions (v0.2.0).
 
 ## Contents
 
@@ -18,6 +18,11 @@ Comprehensive reference for Calcium's standard library modules and built-in func
 6. [core.regex](#coreregex)
 7. [core.toml](#coretoml)
 8. [core.http!](#corehttp)
+9. [core.time](#coretime)
+10. [core.os](#coreos)
+11. [core.async!](#coreasync)
+12. [core.schedule!](#coreschedule)
+13. [core.assert!](#coreassert)
 
 ---
 
@@ -29,12 +34,13 @@ Built-in functions are available globally without any `use` statement.
 
 #### `len(x)`
 
-Returns the length of a string, array, or hash.
+Returns the length of a string, array, hash, or tuple.
 
 ```calcium
 len("hello");        // 5
 len([1, 2, 3]);      // 3
 len({a: 1, b: 2});   // 2
+len((1, 2, 3));      // 3
 ```
 
 #### `map(arr, fn)`
@@ -90,13 +96,13 @@ range(1, 4) |> map(x => x * x);
 // [1, 4, 9]
 ```
 
-#### `concat(a, b, ...)`
+#### `concat(a, b)`
 
 Concatenates strings or arrays.
 
 ```calcium
-concat("Hello", ", ", "World!");
-// "Hello, World!"
+concat("Hello", " World!");
+// "Hello World!"
 
 concat([1, 2], [3, 4]);
 // [1, 2, 3, 4]
@@ -137,33 +143,6 @@ push([1, 2], 3);
 // [1, 2, 3]
 ```
 
-#### `pop(arr)`
-
-Returns a new array with the last element removed.
-
-```calcium
-pop([1, 2, 3]);
-// [1, 2]
-```
-
-#### `shift(arr)`
-
-Returns a new array with the first element removed.
-
-```calcium
-shift([1, 2, 3]);
-// [2, 3]
-```
-
-#### `unshift(arr, elem)`
-
-Returns a new array with the element prepended to the beginning.
-
-```calcium
-unshift([2, 3], 1);
-// [1, 2, 3]
-```
-
 #### `get(collection, key)`
 
 Gets an element by index (for arrays) or by key (for hashes).
@@ -201,7 +180,7 @@ values({name: "Alice", age: 30});
 Returns `true` if the hash contains the given key.
 
 ```calcium
-let user = {name: "Alice", role: "admin"};
+user = {name: "Alice", role: "admin"};
 has(user, "name");    // true
 has(user, "email");   // false
 ```
@@ -217,52 +196,6 @@ to_string(42);       // "42"
 to_string(3.14);     // "3.14"
 to_string(true);     // "true"
 to_string([1, 2]);   // "[1, 2]"
-```
-
-#### `to_int(value)`
-
-Converts a value to an integer.
-
-```calcium
-to_int("42");     // 42
-to_int(3.14);     // 3
-to_int(true);     // 1
-```
-
-#### `to_float(value)`
-
-Converts a value to a floating-point number.
-
-```calcium
-to_float("3.14");   // 3.14
-to_float(42);       // 42.0
-```
-
-#### `to_bool(value)`
-
-Converts a value to a boolean.
-
-```calcium
-to_bool(0);       // false
-to_bool(1);       // true
-to_bool("");      // false
-to_bool("hi");    // true
-to_bool(null);    // false
-```
-
-#### `type(value)`
-
-Returns a string indicating the type of the value.
-
-```calcium
-type(42);          // "integer"
-type(3.14);        // "float"
-type("hello");     // "string"
-type(true);        // "boolean"
-type([1, 2]);      // "array"
-type({a: 1});      // "hash"
-type(null);        // "null"
-type(x => x);      // "function"
 ```
 
 ### Result Constructors
@@ -283,18 +216,6 @@ Wraps an error value in a failure result.
 ```calcium
 failure("not found");
 // failure("not found")
-```
-
-#### `assert(condition, message)`
-
-Asserts that a condition is true. If false, produces a failure with the given message.
-
-```calcium
-assert(1 + 1 == 2, "math works");
-// success(true)
-
-assert(1 > 2, "expected greater");
-// failure("expected greater")
 ```
 
 ---
@@ -331,36 +252,111 @@ use core.io!;
 io.print("Enter name: ");
 ```
 
-### `io.readln(prompt)`
-
-Reads a line of input from the user, optionally displaying a prompt.
-
-```calcium
-use core.io!;
-
-let name = io.readln("What is your name? ");
-io.println(concat("Hello, ", name, "!"));
-```
-
-### `io.read_file!(path)`
+### `io.read_file(path)`
 
 Reads the entire contents of a file and returns it as a string.
 
 ```calcium
 use core.io!;
 
-let content = io.read_file!("data.txt");
+content = io.read_file("data.txt");
 content !> io.println;
 ```
 
-### `io.write_file!(path, content)`
+### `io.write_file(path, content)`
 
 Writes a string to a file, creating it if it doesn't exist or overwriting if it does.
 
 ```calcium
 use core.io!;
 
-io.write_file!("output.txt", "Hello, file!");
+io.write_file("output.txt", "Hello, file!");
+```
+
+### `io.read_lines(path)`
+
+Reads a file and returns its contents as an array of lines.
+
+```calcium
+use core.io!;
+
+lines = io.read_lines("data.txt");
+lines |> map(line => string.trim(line)) !> io.println;
+```
+
+### `io.write_lines(path, lines)`
+
+Writes an array of lines to a file.
+
+```calcium
+use core.io!;
+
+io.write_lines("output.txt", ["line 1", "line 2", "line 3"]);
+```
+
+### `io.list_dir(path)`
+
+Lists the contents of a directory.
+
+```calcium
+use core.io!;
+
+entries = io.list_dir(".");
+entries !> io.println;
+```
+
+### `io.mkdir(path)`
+
+Creates a directory, including parent directories if needed.
+
+```calcium
+use core.io!;
+
+io.mkdir("output/subdir");
+```
+
+### `io.delete_file(path)`
+
+Removes a file.
+
+```calcium
+use core.io!;
+
+io.delete_file("temp.txt");
+```
+
+### `io.exists(path)`
+
+Checks if a file or directory exists at the given path.
+
+```calcium
+use core.io!;
+
+io.exists("config.toml");  // true or false
+```
+
+### `io.file_info(path)`
+
+Returns file metadata as a hash with `name`, `size`, `is_dir`, and `modified` fields.
+
+```calcium
+use core.io!;
+
+info = io.file_info("data.txt");
+io.println(info.name);      // "data.txt"
+io.println(info.size);      // file size in bytes
+io.println(info.is_dir);    // false
+```
+
+### `io.format(template, args)`
+
+Formats a string by replacing `{}` placeholders with values from the args array.
+
+```calcium
+use core.io!;
+
+io.format("Hello, {}! You are {} years old.", ["Alice", 30]);
+// "Hello, Alice! You are 30 years old."
 ```
 
 ---
@@ -382,7 +378,7 @@ The mathematical constant Pi (approximately 3.14159265358979).
 ```calcium
 use core.math;
 
-let circumference = 2 * math.pi * radius;
+circumference = 2 * math.pi * radius;
 ```
 
 #### `math.e`
@@ -392,7 +388,7 @@ Euler's number (approximately 2.71828182845905).
 ```calcium
 use core.math;
 
-let growth = math.pow(math.e, rate * time);
+growth = math.pow(math.e, rate * time);
 ```
 
 ### Functions
@@ -699,28 +695,6 @@ string.repeat("-", 20);
 // "--------------------"
 ```
 
-### `string.chars(s)`
-
-Splits a string into an array of individual characters.
-
-```calcium
-use core.string;
-
-string.chars("hello");
-// ["h", "e", "l", "l", "o"]
-```
-
-### `string.reverse(s)`
-
-Reverses the characters in a string.
-
-```calcium
-use core.string;
-
-string.reverse("hello");
-// "olleh"
-```
-
 ### `string.pad_left(s, len, char)`
 
 Pads the string on the left to reach the target length.
@@ -759,83 +733,6 @@ Array manipulation functions. All functions return new arrays (arrays are immuta
 use core.array;
 ```
 
-### `array.length(arr)`
-
-Returns the number of elements in the array.
-
-```calcium
-use core.array;
-
-array.length([1, 2, 3]);    // 3
-array.length([]);             // 0
-```
-
-### `array.push(arr, elem)`
-
-Returns a new array with the element appended.
-
-```calcium
-use core.array;
-
-array.push([1, 2], 3);
-// [1, 2, 3]
-```
-
-### `array.pop(arr)`
-
-Returns a new array with the last element removed.
-
-```calcium
-use core.array;
-
-array.pop([1, 2, 3]);
-// [1, 2]
-```
-
-### `array.shift(arr)`
-
-Returns a new array with the first element removed.
-
-```calcium
-use core.array;
-
-array.shift([1, 2, 3]);
-// [2, 3]
-```
-
-### `array.unshift(arr, elem)`
-
-Returns a new array with the element prepended.
-
-```calcium
-use core.array;
-
-array.unshift([2, 3], 1);
-// [1, 2, 3]
-```
-
-### `array.slice(arr, start, end)`
-
-Extracts a portion of the array from `start` (inclusive) to `end` (exclusive).
-
-```calcium
-use core.array;
-
-array.slice([10, 20, 30, 40, 50], 1, 4);
-// [20, 30, 40]
-```
-
-### `array.concat(arr1, arr2)`
-
-Concatenates two arrays.
-
-```calcium
-use core.array;
-
-array.concat([1, 2], [3, 4]);
-// [1, 2, 3, 4]
-```
-
 ### `array.reverse(arr)`
 
 Returns a new array with elements in reverse order.
@@ -865,20 +762,9 @@ Returns a new array sorted using a custom comparison function.
 ```calcium
 use core.array;
 
-let people = [{name: "Bob", age: 30}, {name: "Alice", age: 25}];
+people = [{name: "Bob", age: 30}, {name: "Alice", age: 25}];
 array.sort_by(people, (a, b) => a.age - b.age);
 // [{name: "Alice", age: 25}, {name: "Bob", age: 30}]
-```
-
-### `array.contains(arr, elem)`
-
-Returns `true` if the array contains the given element.
-
-```calcium
-use core.array;
-
-array.contains([1, 2, 3], 2);     // true
-array.contains([1, 2, 3], 5);     // false
 ```
 
 ### `array.index_of(arr, elem)`
@@ -950,6 +836,17 @@ array.drop([1, 2, 3, 4, 5], 2);
 // [3, 4, 5]
 ```
 
+### `array.slice(arr, start, end)`
+
+Extracts a portion of the array from `start` (inclusive) to `end` (exclusive).
+
+```calcium
+use core.array;
+
+array.slice([10, 20, 30, 40, 50], 1, 4);
+// [20, 30, 40]
+```
+
 ### `array.chunk(arr, n)`
 
 Splits the array into sub-arrays of size `n`.
@@ -959,17 +856,6 @@ use core.array;
 
 array.chunk([1, 2, 3, 4, 5], 2);
 // [[1, 2], [3, 4], [5]]
-```
-
-### `array.enumerate(arr)`
-
-Returns an array of `[index, element]` pairs.
-
-```calcium
-use core.array;
-
-array.enumerate(["a", "b", "c"]);
-// [[0, "a"], [1, "b"], [2, "c"]]
 ```
 
 ### `array.find(arr, pred)`
@@ -1066,19 +952,17 @@ Returns `true` if the string matches the pattern.
 ```calcium
 use core.regex;
 
-regex.matches("hello123", "^[a-z]+\\d+$");    // true
-regex.matches("hello", "^\\d+$");              // false
+regex.matches("hello world", /world/);  // true
 ```
 
 ### `regex.find(s, pattern)`
 
-Returns the first match of the pattern in the string, or `null` if no match.
+Returns the first match of the pattern in the string as a Result.
 
 ```calcium
 use core.regex;
 
-regex.find("hello 42 world", "\\d+");
-// "42"
+regex.find("hello123world", /\d+/);     // success("123")
 ```
 
 ### `regex.find_all(s, pattern)`
@@ -1088,11 +972,7 @@ Returns an array of all matches of the pattern.
 ```calcium
 use core.regex;
 
-regex.find_all("a1 b2 c3", "\\d+");
-// ["1", "2", "3"]
-
-regex.find_all("hello world", "[a-z]+");
-// ["hello", "world"]
+regex.find_all("a1b2c3", /\d/);         // ["1", "2", "3"]
 ```
 
 ### `regex.replace(s, pattern, repl)`
@@ -1102,8 +982,7 @@ Replaces all occurrences of the pattern with the replacement string.
 ```calcium
 use core.regex;
 
-regex.replace("hello 42 world 99", "\\d+", "NUM");
-// "hello NUM world NUM"
+regex.replace("hello world", /world/, "calcium");  // "hello calcium"
 ```
 
 ### `regex.replace_first(s, pattern, repl)`
@@ -1113,7 +992,7 @@ Replaces only the first occurrence of the pattern.
 ```calcium
 use core.regex;
 
-regex.replace_first("hello 42 world 99", "\\d+", "NUM");
+regex.replace_first("hello 42 world 99", /\d+/, "NUM");
 // "hello NUM world 99"
 ```
 
@@ -1124,8 +1003,7 @@ Splits a string by the given pattern.
 ```calcium
 use core.regex;
 
-regex.split("one,two;;three", "[,;]+");
-// ["one", "two", "three"]
+regex.split("a1b2c3", /\d/);            // ["a", "b", "c"]
 ```
 
 ### `regex.capture(s, pattern)`
@@ -1135,8 +1013,8 @@ Returns an array of capture group matches.
 ```calcium
 use core.regex;
 
-regex.capture("2026-03-08", "(\\d{4})-(\\d{2})-(\\d{2})");
-// ["2026-03-08", "2026", "03", "08"]
+regex.capture("2024-01-15", /(\d+)-(\d+)-(\d+)/);
+// success(["2024-01-15", "2024", "01", "15"])
 ```
 
 ---
@@ -1156,7 +1034,7 @@ Parses a TOML-formatted string into a hash.
 ```calcium
 use core.toml;
 
-let config = toml.parse('[server]
+config = toml.parse('[server]
 host = "localhost"
 port = 8080');
 
@@ -1171,7 +1049,7 @@ Converts a hash to a TOML-formatted string.
 ```calcium
 use core.toml;
 
-let config = {
+config = {
     server: {
         host: "localhost",
         port: 8080
@@ -1192,169 +1070,456 @@ HTTP client for making web requests. This is an effect module.
 use core.http!;
 ```
 
-All HTTP functions return a result hash with the following structure:
+All HTTP functions return a Result wrapping a hash with `status`, `headers`, `body`, and `ok` fields.
 
-```calcium
-{
-    status: 200,
-    headers: { "content-type": "application/json", ... },
-    body: "response body as string"
-}
-```
-
-### `http.get!(url, headers)`
+### `http.get(url, headers)`
 
 Performs an HTTP GET request.
 
-- **Parameters:**
-  - `url` - The URL to request
-  - `headers` (optional) - A hash of request headers
-
 ```calcium
 use core.http!;
+use core.io!;
 
-let response = http.get!("https://api.example.com/users");
-response.body !> io.println;
-
-// With custom headers
-let response = http.get!("https://api.example.com/users", {
-    "Authorization": "Bearer token123"
-});
+result = http.get("https://api.example.com/users", {});
+io.println(result);
+// success({status: 200, headers: {...}, body: "...", ok: true})
 ```
 
-### `http.post!(url, body, type, headers)`
+### `http.post(url, body, type, headers)`
 
 Performs an HTTP POST request.
 
-- **Parameters:**
-  - `url` - The URL to request
-  - `body` - The request body
-  - `type` - Content type (e.g., `"application/json"`)
-  - `headers` (optional) - A hash of additional headers
-
 ```calcium
 use core.http!;
 
-let response = http.post!(
+result = http.post(
     "https://api.example.com/users",
     '{"name": "Alice"}',
-    "application/json"
+    "application/json",
+    {}
 );
 ```
 
-### `http.put!(url, body, type, headers)`
+### `http.put(url, body, type, headers)`
 
 Performs an HTTP PUT request.
 
-- **Parameters:**
-  - `url` - The URL to request
-  - `body` - The request body
-  - `type` - Content type
-  - `headers` (optional) - A hash of additional headers
-
-```calcium
-use core.http!;
-
-let response = http.put!(
-    "https://api.example.com/users/1",
-    '{"name": "Alice Updated"}',
-    "application/json"
-);
-```
-
-### `http.del!(url, headers)`
+### `http.del(url, headers)`
 
 Performs an HTTP DELETE request.
 
-- **Parameters:**
-  - `url` - The URL to request
-  - `headers` (optional) - A hash of request headers
-
-```calcium
-use core.http!;
-
-let response = http.del!("https://api.example.com/users/1");
-```
-
-### `http.patch!(url, body, type, headers)`
-
-Performs an HTTP PATCH request.
-
-- **Parameters:**
-  - `url` - The URL to request
-  - `body` - The request body
-  - `type` - Content type
-  - `headers` (optional) - A hash of additional headers
-
-```calcium
-use core.http!;
-
-let response = http.patch!(
-    "https://api.example.com/users/1",
-    '{"active": false}',
-    "application/json"
-);
-```
-
-### `http.head!(url, headers)`
-
-Performs an HTTP HEAD request (returns only headers, no body).
-
-- **Parameters:**
-  - `url` - The URL to request
-  - `headers` (optional) - A hash of request headers
-
-```calcium
-use core.http!;
-
-let response = http.head!("https://api.example.com/users");
-response.headers !> io.println;
-```
-
-### `http.request!(options)`
+### `http.request(options)`
 
 Performs a custom HTTP request with full control over the request configuration.
 
-- **Parameters:**
-  - `options` - A hash with keys: `method`, `url`, `headers`, `body`, `content_type`
-
 ```calcium
 use core.http!;
 
-let response = http.request!({
-    method: "POST",
+result = http.request({
+    method: "GET",
     url: "https://api.example.com/data",
-    headers: {
-        "Authorization": "Bearer token123",
-        "X-Custom-Header": "value"
-    },
-    body: '{"key": "value"}',
-    content_type: "application/json"
+    headers: {"Authorization": "Bearer token123"}
 });
 ```
 
-### `http.post_json!(url, data)`
+### `http.post_json(url, data)`
 
-Convenience function for posting JSON data. Automatically serializes the data and sets the content type.
+Convenience function for posting JSON data.
 
 ```calcium
 use core.http!;
 
-let response = http.post_json!("https://api.example.com/users", {
-    name: "Alice",
-    age: 30
-});
+result = http.post_json("https://api.example.com/users", "{\"name\": \"Alice\"}");
 ```
 
-### `http.post_form!(url, data)`
+### `http.post_form(url, data)`
 
-Convenience function for posting form data. Automatically encodes the data as `application/x-www-form-urlencoded`.
+Convenience function for posting form data.
+
+---
+
+## core.time
+
+Date and time operations.
 
 ```calcium
-use core.http!;
+use core.time;
+```
 
-let response = http.post_form!("https://api.example.com/login", {
-    username: "alice",
-    password: "secret"
-});
+### Timestamps
+
+#### `time.now()`
+
+Returns the current Unix timestamp in seconds.
+
+```calcium
+use core.time;
+
+ts = time.now();
+```
+
+#### `time.now_ms()`
+
+Returns the current Unix timestamp in milliseconds.
+
+```calcium
+use core.time;
+
+ts_ms = time.now_ms();
+```
+
+### Formatting
+
+#### `time.format(ts, layout)`
+
+Formats a timestamp to a string using the given layout.
+
+```calcium
+use core.time;
+
+ts = time.now();
+time.format(ts, "2006-01-02 15:04:05");
+```
+
+#### `time.format_tz(ts, layout, tz)`
+
+Formats a timestamp with a specific timezone.
+
+```calcium
+use core.time;
+
+ts = time.now();
+time.format_tz(ts, "2006-01-02 15:04:05", "Asia/Tokyo");
+```
+
+#### `time.to_iso(ts)`
+
+Formats a timestamp as ISO 8601 string.
+
+#### `time.to_date(ts)`
+
+Formats a timestamp as YYYY-MM-DD.
+
+#### `time.to_time(ts)`
+
+Formats a timestamp as HH:MM:SS.
+
+### Parsing
+
+#### `time.parse(str, layout)`
+
+Parses a string to a timestamp using the given layout.
+
+#### `time.from_iso(str)`
+
+Parses an ISO 8601 string to a timestamp.
+
+#### `time.from_date(str)`
+
+Parses a YYYY-MM-DD string to a timestamp.
+
+### Components
+
+#### `time.components(ts)`
+
+Returns a hash with `year`, `month`, `day`, `hour`, `minute`, `second`, and `weekday` fields.
+
+```calcium
+use core.time;
+
+ts = time.now();
+c = time.components(ts);
+io.println(c.year);     // e.g., 2026
+io.println(c.month);    // e.g., 3
+io.println(c.weekday);  // 0=Sunday
+```
+
+#### `time.year(ts)`, `time.month(ts)`, `time.day_of(ts)`
+
+Get individual date components from a timestamp.
+
+#### `time.hour_of(ts)`, `time.minute_of(ts)`, `time.second_of(ts)`
+
+Get individual time components from a timestamp.
+
+#### `time.weekday(ts)`
+
+Get the weekday from a timestamp (0=Sunday).
+
+#### `time.from_components(y, m, d, h, min, s)`
+
+Creates a timestamp from individual date/time components.
+
+### Arithmetic
+
+#### `time.add(ts, seconds)`
+
+Adds seconds to a timestamp.
+
+#### `time.add_minutes(ts, n)`, `time.add_hours(ts, n)`, `time.add_days(ts, n)`
+
+Adds the specified number of minutes, hours, or days to a timestamp.
+
+#### `time.diff(t1, t2)`
+
+Returns the difference between two timestamps in seconds.
+
+### Duration Constants
+
+| Constant | Value |
+|----------|-------|
+| `time.second` | 1 |
+| `time.minute` | 60 |
+| `time.hour` | 3600 |
+| `time.day` | 86400 |
+| `time.week` | 604800 |
+
+---
+
+## core.os
+
+Environment variables and OS integration.
+
+```calcium
+use core.os;
+```
+
+### `os.env(name)`
+
+Gets an environment variable. Returns a Result.
+
+```calcium
+use core.os;
+
+result = os.env("HOME");
+// success("/home/user") or failure("HOME not set")
+```
+
+### `os.set_env(name, value)`
+
+Sets an environment variable.
+
+```calcium
+use core.os;
+
+os.set_env("MY_VAR", "hello");
+```
+
+### `os.unset_env(name)`
+
+Unsets an environment variable.
+
+### `os.env_all()`
+
+Returns all environment variables as a hash.
+
+```calcium
+use core.os;
+
+all = os.env_all();
+```
+
+### `os.args()`
+
+Returns the command-line arguments as an array.
+
+```calcium
+use core.os;
+
+args = os.args();
+```
+
+### `os.exit(code)`
+
+Terminates the process with the given exit code.
+
+```calcium
+use core.os;
+
+os.exit(0);
+```
+
+---
+
+## core.async!
+
+Async tasks, channels, and event loops.
+
+```calcium
+use core.async!;
+```
+
+### `async.spawn(fn)`
+
+Spawns a task for parallel execution. Returns a task object with `status` and `result` fields.
+
+```calcium
+use core.async!;
+
+task = async.spawn(() => compute_something());
+task.status;   // "pending", "running", "completed", "failed", "cancelled"
+task.result;   // Result value when completed
+```
+
+### `async.all(tasks)`
+
+Waits for all tasks and returns their results as an array.
+
+```calcium
+use core.async!;
+
+results = async.all([
+    async.spawn(() => 10),
+    async.spawn(() => 20),
+    async.spawn(() => 30)
+]);  // Returns [10, 20, 30]
+```
+
+### `async.stay(state) { ... }`
+
+Creates an event loop with state.
+
+```calcium
+use core.async!;
+use core.schedule!;
+
+result = async.stay(count: 0) {
+    src = schedule.timeout(1000);
+    handler = async.expects((event) => {
+        async.leave("done");   // Exit loop with value
+    }, src);
+    handler.ready();
+};
+```
+
+### `async.expects(handler, source)`
+
+Creates an event handler for an event source.
+
+### `async.leave(value)`
+
+Exits the event loop with the given value.
+
+### `async.continue(new_state)`
+
+Continues the event loop with updated state.
+
+### `async.cancel(handler)`
+
+Cancels an event handler.
+
+### `async.channel()` / `async.channel(n)`
+
+Creates a channel for message passing. Without arguments creates an unbuffered channel; with an integer argument creates a buffered channel with the specified capacity.
+
+```calcium
+use core.async!;
+
+ch = async.channel();      // Unbuffered
+ch = async.channel(10);    // Buffered, capacity 10
+ch.send(value);            // Send message
+ch.receive();              // Receive message
+```
+
+---
+
+## core.schedule!
+
+Timer-based event sources for use with `async.stay`.
+
+```calcium
+use core.schedule!;
+```
+
+### `schedule.timeout(ms)`
+
+Creates a one-time timer event source that fires after the specified number of milliseconds.
+
+```calcium
+use core.schedule!;
+
+src = schedule.timeout(1000);  // Fires once after 1 second
+```
+
+### `schedule.interval(ms)`
+
+Creates a repeating timer event source that fires every specified number of milliseconds.
+
+```calcium
+use core.schedule!;
+
+src = schedule.interval(500);  // Fires every 500ms
+```
+
+---
+
+## core.assert!
+
+Testing assertions module. Used with `calcium test` to run test files.
+
+```calcium
+use core.assert!;
+```
+
+### Equality & Comparison
+
+| Function | Description |
+|----------|-------------|
+| `assert.eq(label, actual, expected)` | Equality check |
+| `assert.neq(label, actual, expected)` | Inequality check |
+| `assert.gt(label, a, b)` | Greater than |
+| `assert.gte(label, a, b)` | Greater or equal |
+| `assert.lt(label, a, b)` | Less than |
+| `assert.lte(label, a, b)` | Less or equal |
+| `assert.between(label, val, low, high)` | Range check |
+| `assert.near(label, actual, expected, epsilon)` | Approximate equality |
+
+### Boolean & Type Checks
+
+| Function | Description |
+|----------|-------------|
+| `assert.ok(label, value)` | Truthy check |
+| `assert.is_true(label, value)` | Exactly true |
+| `assert.is_false(label, value)` | Exactly false |
+| `assert.is_null(label, value)` | Null check |
+| `assert.is_type(label, value, type)` | Type check |
+
+### Collection & String Checks
+
+| Function | Description |
+|----------|-------------|
+| `assert.contains(label, arr, elem)` | Array contains element |
+| `assert.len_eq(label, collection, length)` | Length check |
+| `assert.matches(label, str, sub)` | String contains substring |
+| `assert.not_matches(label, str, sub)` | String does not contain |
+
+### Result Checks
+
+| Function | Description |
+|----------|-------------|
+| `assert.throws(label, result)` | Result is failure |
+| `assert.succeeds(label, result)` | Result is success |
+
+### Utility
+
+| Function | Description |
+|----------|-------------|
+| `assert.fail(label)` | Force test failure |
+| `assert.section(name)` | Print section header |
+
+### Example
+
+```calcium
+use core.assert!;
+
+assert.section("Math tests");
+
+assert.eq("addition", 1 + 1, 2);
+assert.gt("positive", 5, 0);
+assert.between("percentage", 75, 0, 100);
+
+assert.section("String tests");
+
+assert.matches("greeting", "Hello, World!", "Hello");
+assert.len_eq("empty array", [], 0);
 ```

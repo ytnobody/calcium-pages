@@ -31,11 +31,11 @@ use core.array;      // Array utilities
 use core.regex;      // Regular expressions
 use core.toml;       // TOML parsing
 use core.http!;      // HTTP client (effect module)
-use core.time;       // Date and time utilities
-use core.os;         // OS interaction (env vars, process)
+use core.time;       // Date/time operations
+use core.os;         // Environment variables, CLI args
 use core.async!;     // Async tasks and channels (effect module)
-use core.schedule!;  // Timer and interval events (effect module)
-use core.assert!;    // Test assertion helpers (effect module)
+use core.schedule!;  // Timer event sources (effect module)
+use core.assert!;    // Testing assertions (effect module)
 ```
 
 ### External Modules
