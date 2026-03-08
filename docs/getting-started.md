@@ -51,6 +51,9 @@ go build -o calcium ./cmd/calcium
 
 # Build the bone package manager
 go build -o bone ./cmd/bone
+
+# Build the LSP server (optional, for IDE integration)
+go build -o calcium-lsp ./cmd/calcium-lsp
 ```
 
 #### 3. Add to PATH (Optional)
