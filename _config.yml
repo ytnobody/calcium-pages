@@ -12,6 +12,7 @@ header_pages:
   - docs/modules/index.md
   - docs/stdlib/index.md
   - docs/reference/index.md
+  - search.md
 
 # Markdown settings
 markdown: kramdown
@@ -34,3 +35,7 @@ exclude:
   - README.md
   - Gemfile
   - Gemfile.lock
+
+# Include search.json in the build output
+include:
+  - search.json
