@@ -64,7 +64,7 @@ calcium hello.ca
 
 ## Documentation
 
-- [Getting Started](docs/getting-started.html) - Installation and your first program
+- [Getting Started](docs/getting-started/) - Installation and your first program
 - [Tutorial](docs/tutorial/) - Learn the language step by step
 - [Modules](docs/modules/) - Using bone and Boneyard
 - [Reference](docs/reference/) - Language specification and standard library
