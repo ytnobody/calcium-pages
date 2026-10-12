@@ -13,13 +13,29 @@ permissions:
   issues: write
 
 jobs:
-  link-check:
+  # Internal page links and in-page anchors, resolved from the markdown sources.
+  internal-links:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Check links with lychee
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Check internal links and anchors
+        run: node scripts/check-links.mjs
+
+  # External (http/https) links found in markdown sources.
+  external-links:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check external links with lychee
         uses: lycheeverse/lychee-action@v2
         with:
           args: >-
@@ -42,6 +58,6 @@ jobs:
         if: github.event_name == 'schedule' && env.lychee_exit_code != 0
         uses: peter-evans/create-issue-from-file@v5
         with:
-          title: "Broken links detected"
+          title: "Broken external links detected"
           content-filepath: ./lychee/out.md
           labels: bug, documentation

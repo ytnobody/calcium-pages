@@ -175,6 +175,6 @@ calcium main.ca
 
 ## Next Steps
 
-- [Tutorial](tutorial/) - Learn Calcium step by step
-- [Modules Guide](modules/) - Deep dive into the module system
-- [Language Reference](reference/) - Complete language specification
+- [Tutorial](../tutorial/) - Learn Calcium step by step
+- [Modules Guide](../modules/) - Deep dive into the module system
+- [Language Reference](../reference/) - Complete language specification
