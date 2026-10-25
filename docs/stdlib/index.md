@@ -6,23 +6,24 @@ permalink: /docs/stdlib/
 
 # Standard Library Reference
 
-Comprehensive reference for Calcium's standard library modules and built-in functions (v0.2.0).
+Comprehensive reference for Calcium's standard library modules and built-in functions (v0.2.34).
 
 ## Contents
 
 1. [Built-in Functions](#built-in-functions)
-2. [core.io!](#coreio)
-3. [core.math](#coremath)
-4. [core.string](#corestring)
-5. [core.array](#corearray)
-6. [core.regex](#coreregex)
-7. [core.toml](#coretoml)
-8. [core.http!](#corehttp)
-9. [core.time](#coretime)
-10. [core.os](#coreos)
-11. [core.async!](#coreasync)
-12. [core.schedule!](#coreschedule)
-13. [core.assert!](#coreassert)
+2. [Secret](#secret)
+3. [core.io!](#coreio)
+4. [core.math](#coremath)
+5. [core.string](#corestring)
+6. [core.array](#corearray)
+7. [core.regex](#coreregex)
+8. [core.toml](#coretoml)
+9. [core.http!](#corehttp)
+10. [core.time](#coretime)
+11. [core.os!](#coreos)
+12. [core.async!](#coreasync)
+13. [core.schedule!](#coreschedule)
+14. [core.assert!](#coreassert)
 
 ---
 
@@ -143,9 +144,11 @@ push([1, 2], 3);
 // [1, 2, 3]
 ```
 
-#### `get(collection, key)`
+#### `get(collection, key [, default])`
 
-Gets an element by index (for arrays) or by key (for hashes).
+Gets an element by index (for arrays) or by key (for hashes). Returns
+`Maybe.Some(value)` or `Maybe.None`. With a default, returns the raw value or
+the default instead.
 
 ```calcium
 get([10, 20, 30], 1);
@@ -156,6 +159,9 @@ get({name: "Alice", age: 30}, "name");
 
 get({name: "Alice"}, "email");
 // Maybe.None
+
+get({name: "Alice"}, "email", "unknown");
+// "unknown"
 ```
 
 ### Hash Operations
@@ -220,6 +226,74 @@ Wraps an error value in a failure result.
 failure("not found");
 // failure("not found")
 ```
+
+---
+
+## Secret
+
+Opaque values for credentials, API tokens, and other sensitive data. See
+[Secret Values](../secret/) for the full security model.
+
+`Secret` values cannot be printed, serialized, or passed to ordinary effects.
+`to_string` renders `<secret>`, and `json.stringify` / `toml.stringify` return a
+failure instead of serializing the payload.
+
+### `Secret.wrap(value)`
+
+Wraps any value in a Secret.
+
+```calcium
+token = Secret.wrap("token-123");
+```
+
+### `Secret.map(secret, fn)`
+
+Applies a pure function to the wrapped value and returns a new Secret.
+
+```calcium
+use core.string;
+
+token = Secret.wrap("  token-123  ");
+normalized = Secret.map(token, s => string.trim(s));
+```
+
+The callback must be pure. Effect functions are rejected at runtime.
+
+### `Secret.capability(sink, scope)`
+
+Creates a capability for a trusted sink. Only the entry module may create
+capabilities.
+
+```calcium
+use core.http!;
+
+url = "https://api.example.com/upload";
+cap = Secret.capability(http.post_secret, {url: url});
+```
+
+The HTTP sink uses the scope `{url: url}`. The process sink uses
+`{handle: handle}`.
+
+### `Secret.with(capability) { ... }`
+
+Creates a capability scope. Inside it, use `!!!>` to pass Secrets to trusted
+sinks:
+
+```calcium
+use core.http!;
+
+url = "https://api.example.com/upload";
+cap = Secret.capability(http.post_secret, {url: url});
+token = Secret.wrap("token-123");
+
+result = Secret.with(cap) {
+    token !!!> http.post_secret(url, cap, "text/plain", {})
+};
+```
+
+Trusted sinks are `http.post_secret` and `os.proc_write_secret`. The runtime
+must also allowlist the executing module with `--allow-secret-write` or
+`CALCIUM_SECRET_WRITE_ALLOW`. The default is deny.
 
 ---
 
@@ -525,13 +599,14 @@ use core.string;
 
 ### `string.length(s)`
 
-Returns the number of characters in a string.
+Returns the number of runes (Unicode code points) in a string.
 
 ```calcium
 use core.string;
 
-string.length("hello");    // 5
-string.length("");          // 0
+string.length("hello");      // 5
+string.length("");           // 0
+string.length("aアbい");     // 4
 ```
 
 ### `string.upper(s)`
@@ -650,7 +725,8 @@ string.replace("aabaa", "a", "x");
 
 ### `string.substring(s, start, end)`
 
-Extracts a portion of the string from index `start` (inclusive) to `end` (exclusive).
+Extracts a portion of the string from rune index `start` (inclusive) to `end`
+(exclusive).
 
 ```calcium
 use core.string;
@@ -660,6 +736,9 @@ string.substring("hello world", 0, 5);
 
 string.substring("hello world", 6, 11);
 // "world"
+
+string.substring("aアbい", 1, 3);
+// "アb"
 ```
 
 ### `string.index_of(s, sub)`
@@ -675,14 +754,27 @@ string.index_of("hello world", "xyz");     // -1
 
 ### `string.char_at(s, i)`
 
-Returns the character at the given index.
+Returns the rune at the given index as `Maybe.Some(character)` or `Maybe.None`
+when the index is out of range.
 
 ```calcium
 use core.string;
 
 string.char_at("hello", 0);    // Maybe.Some("h")
 string.char_at("hello", 4);    // Maybe.Some("o")
+string.char_at("aアbい", 1);   // Maybe.Some("ア")
 string.char_at("hello", 9);    // Maybe.None
+```
+
+### `string.from_code(cp)`
+
+Converts a Unicode code point to a one-character string. Returns a Result.
+
+```calcium
+use core.string;
+
+string.from_code(65);       // success("A")
+string.from_code(0x3042);   // success("あ")
 ```
 
 ### `string.repeat(s, n)`
@@ -1051,7 +1143,8 @@ config.server.port;    // 8080
 
 ### `toml.stringify(hash)`
 
-Converts a hash to a TOML-formatted string.
+Converts a hash to a TOML-formatted string. Returns a failure if the hash
+contains a Secret.
 
 ```calcium
 use core.toml;
@@ -1106,6 +1199,26 @@ result = http.post(
     {}
 );
 ```
+
+### `http.post_secret(secret, url, cap, type, headers)`
+
+Posts a Secret as the request body. This is a trusted sink and can only be used
+with `Secret.with` and `!!!>`. Inside `!!!>`, the Secret is implicit and omitted
+from the call.
+
+```calcium
+use core.http!;
+
+url = "https://api.example.com/upload";
+cap = Secret.capability(http.post_secret, {url: url});
+token = Secret.wrap("token-123");
+
+result = Secret.with(cap) {
+    token !!!> http.post_secret(url, cap, "text/plain", {})
+};
+```
+
+The runtime must also allowlist the module with `--allow-secret-write=entry`.
 
 ### `http.put(url, body, type, headers)`
 
@@ -1283,12 +1396,13 @@ Returns the difference between two timestamps in seconds.
 
 ---
 
-## core.os
+## core.os!
 
-Environment variables and OS integration.
+Environment variables, command-line arguments, and process integration. This is
+an effect module.
 
 ```calcium
-use core.os;
+use core.os!;
 ```
 
 ### `os.env(name)`
@@ -1296,7 +1410,7 @@ use core.os;
 Gets an environment variable. Returns a Result.
 
 ```calcium
-use core.os;
+use core.os!;
 
 result = os.env("HOME");
 // success("/home/user") or failure("HOME not set")
@@ -1307,7 +1421,7 @@ result = os.env("HOME");
 Sets an environment variable.
 
 ```calcium
-use core.os;
+use core.os!;
 
 os.set_env("MY_VAR", "hello");
 ```
@@ -1321,7 +1435,7 @@ Unsets an environment variable.
 Returns all environment variables as a hash.
 
 ```calcium
-use core.os;
+use core.os!;
 
 all = os.env_all();
 ```
@@ -1331,7 +1445,7 @@ all = os.env_all();
 Returns the command-line arguments as an array.
 
 ```calcium
-use core.os;
+use core.os!;
 
 args = os.args();
 ```
@@ -1341,10 +1455,31 @@ args = os.args();
 Terminates the process with the given exit code.
 
 ```calcium
-use core.os;
+use core.os!;
 
 os.exit(0);
 ```
+
+### `os.proc_write_secret(secret, handle, cap)`
+
+Writes a Secret string to a child process's stdin. This is a trusted sink and
+can only be used with `Secret.with` and `!!!>`. Inside `!!!>`, the Secret is
+implicit and omitted from the call. The handle comes from a started child
+process.
+
+```calcium
+use core.os!;
+
+// handle comes from os.proc_start(...)
+cap = Secret.capability(os.proc_write_secret, {handle: handle});
+token = Secret.wrap("token-123");
+
+result = Secret.with(cap) {
+    token !!!> os.proc_write_secret(handle, cap)
+};
+```
+
+The runtime must also allowlist the module with `--allow-secret-write=entry`.
 
 ---
 
