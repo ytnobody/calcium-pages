@@ -864,13 +864,16 @@ array.chunk([1, 2, 3, 4, 5], 2);
 
 ### `array.find(arr, pred)`
 
-Returns `success(element)` for the first match, or `failure("not found")` if none found.
+Returns `Maybe.Some(element)` for the first match, or `Maybe.None` if none found.
 
 ```calcium
 use core.array;
 
 array.find([1, 2, 3, 4], x => x > 2);
-// 3
+// Maybe.Some(3)
+
+array.find([1, 2, 3, 4], x => x > 9);
+// Maybe.None
 ```
 
 ### `array.any(arr, pred)`
