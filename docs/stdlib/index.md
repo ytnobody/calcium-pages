@@ -116,10 +116,10 @@ Returns the first element of an array.
 
 ```calcium
 head([10, 20, 30]);
-// 10
+// Maybe.Some(10)
 
 head([]);
-// null
+// Maybe.None
 ```
 
 #### `tail(arr)`
@@ -149,10 +149,13 @@ Gets an element by index (for arrays) or by key (for hashes).
 
 ```calcium
 get([10, 20, 30], 1);
-// 20
+// Maybe.Some(20)
 
 get({name: "Alice", age: 30}, "name");
-// "Alice"
+// Maybe.Some("Alice")
+
+get({name: "Alice"}, "email");
+// Maybe.None
 ```
 
 ### Hash Operations
@@ -677,8 +680,9 @@ Returns the character at the given index.
 ```calcium
 use core.string;
 
-string.char_at("hello", 0);    // "h"
-string.char_at("hello", 4);    // "o"
+string.char_at("hello", 0);    // Maybe.Some("h")
+string.char_at("hello", 4);    // Maybe.Some("o")
+string.char_at("hello", 9);    // Maybe.None
 ```
 
 ### `string.repeat(s, n)`
@@ -860,7 +864,7 @@ array.chunk([1, 2, 3, 4, 5], 2);
 
 ### `array.find(arr, pred)`
 
-Returns the first element that satisfies the predicate, or `null` if none found.
+Returns `success(element)` for the first match, or `failure("not found")` if none found.
 
 ```calcium
 use core.array;
@@ -1481,7 +1485,7 @@ use core.assert!;
 | `assert.ok(label, value)` | Truthy check |
 | `assert.is_true(label, value)` | Exactly true |
 | `assert.is_false(label, value)` | Exactly false |
-| `assert.is_null(label, value)` | Null check |
+| `assert.is_none(label, value)` | `Maybe.None` check |
 | `assert.is_type(label, value, type)` | Type check |
 
 ### Collection & String Checks

@@ -49,7 +49,7 @@ pi = 3.14159;
 | Array | `[1, 2, 3]` | Ordered collection |
 | Tuple | `(1, "hello", true)` | Lightweight ordered collection |
 | Hash | `{name: "Alice"}` | Key-value pairs |
-| Null | `null` | Absence of value |
+| Maybe | `Maybe.Some(v)` / `Maybe.None` | Optional value |
 
 ### Operators
 
@@ -498,7 +498,7 @@ func greet(name: String): String = "Hello, " + name;
 // Lambda type annotations
 square = (x: Int): Int => x * x;
 
-// Available types: Int, Float, String, Bool, Null, Array, Hash, Tuple, Func, Regex, Any
+// Available types: Int, Float, String, Bool, Maybe, Array, Hash, Tuple, Func, Regex, Any
 ```
 
 Type annotations are completely optional. Code without annotations works as before.

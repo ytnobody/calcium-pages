@@ -66,7 +66,7 @@ name123
 
 ```
 func  func!  constraint  namespace  use  match  type  do  end
-true  false  null  success  failure
+true  false  Maybe.None  success  failure
 ```
 
 ---
@@ -81,7 +81,7 @@ true  false  null  success  failure
 | Float | `3.14`, `-0.5`, `1e10` | 64-bit floating point |
 | Boolean | `true`, `false` | Logical values |
 | String | `"hello"`, `'world'` | UTF-8 text |
-| Null | `null` | Absence of value |
+| Maybe | `Maybe.Some(v)` / `Maybe.None` | Optional value |
 
 ### Composite Types
 
@@ -246,7 +246,7 @@ square = (x: Int): Int => x * x;
 | `Float` | Floating-point values |
 | `String` | String values |
 | `Bool` | Boolean values |
-| `Null` | Null value |
+| `Maybe` | Optional value (`Some` / `None`) |
 | `Array` | Array values |
 | `Hash` | Hash values |
 | `Tuple` | Tuple values |
@@ -791,7 +791,7 @@ func _private_function() = "not exported";
 | `assert.ok(label, value)` | Truthy check |
 | `assert.is_true(label, value)` | Exactly true |
 | `assert.is_false(label, value)` | Exactly false |
-| `assert.is_null(label, value)` | Null check |
+| `assert.is_none(label, value)` | `Maybe.None` check |
 | `assert.is_type(label, value, type)` | Type check |
 | `assert.gt(label, a, b)` | Greater than |
 | `assert.gte(label, a, b)` | Greater or equal |
