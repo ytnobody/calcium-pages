@@ -35,7 +35,7 @@ sudo mv calcium bone calcium-lsp /usr/local/bin/
 
 #### Prerequisites
 
-- Go 1.22 or later
+- Go 1.26 or later
 - Git
 
 #### 1. Clone the Repository
@@ -173,8 +173,36 @@ Run:
 calcium main.ca
 ```
 
+## Handling Secrets
+
+Use the built-in `Secret` type for credentials and tokens. A Secret cannot be
+printed or serialized, and passing it to an effect requires an explicit
+capability scope and a runtime allowlist entry.
+
+```calcium
+use core.http!;
+
+url = "https://api.example.com/upload";
+cap = Secret.capability(http.post_secret, {url: url});
+token = Secret.wrap("token-123");
+
+Secret.with(cap) {
+    token !!!> http.post_secret(url, cap, "text/plain", {})
+};
+```
+
+Run the program with the entry module allowlisted:
+
+```bash
+calcium run --allow-secret-write=entry main.ca
+```
+
+See [Secret Values](../secret/) for redaction, trusted sinks, and the runtime
+allowlist.
+
 ## Next Steps
 
 - [Tutorial](../tutorial/) - Learn Calcium step by step
 - [Modules Guide](../modules/) - Deep dive into the module system
 - [Language Reference](../reference/) - Complete language specification
+- [Secret Values](../secret/) - Capabilities, `!!!>`, and runtime allowlists

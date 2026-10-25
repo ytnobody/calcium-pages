@@ -27,6 +27,7 @@ use core.io!;
 
 - **Pipeline Operator** (`|>`) - Chain function calls in a readable left-to-right style
 - **Effect Pipeline** (`!>`) - Chain side-effecting functions with automatic result wrapping
+- **Secret Values** (`Secret`, `!!!>`) - Keep credentials out of logs and effects with explicit capabilities and runtime allowlists
 - **Pattern Matching** - Powerful `match` expressions for control flow
 - **First-class Functions** - Lambda expressions
 - **Constraints** - Define and enforce value validation rules
@@ -68,6 +69,7 @@ calcium hello.ca
 - [Tutorial](docs/tutorial/) - Learn the language step by step
 - [Modules](docs/modules/) - Using bone and Boneyard
 - [Reference](docs/reference/) - Language specification and standard library
+- [Secret Values](docs/secret/) - Capabilities, `!!!>`, and runtime allowlists
 
 ## Links
 

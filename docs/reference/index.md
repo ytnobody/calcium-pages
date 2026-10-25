@@ -6,7 +6,7 @@ permalink: /docs/reference/
 
 # Language Reference
 
-Complete specification of the Calcium programming language (v0.2.0).
+Complete specification of the Calcium programming language (v0.2.34).
 
 ## Contents
 
@@ -19,11 +19,12 @@ Complete specification of the Calcium programming language (v0.2.0).
 7. [Algebraic Data Types](#algebraic-data-types)
 8. [do...end Blocks](#doend-blocks)
 9. [Constraints](#constraints)
-10. [Modules](#modules)
-11. [Standard Library](#standard-library)
-12. [Built-in Functions](#built-in-functions)
-13. [Developer Tools](#developer-tools)
-14. [Compiler Optimization](#compiler-optimization)
+10. [Secret Values](#secret-values)
+11. [Modules](#modules)
+12. [Standard Library](#standard-library)
+13. [Built-in Functions](#built-in-functions)
+14. [Developer Tools](#developer-tools)
+15. [Compiler Optimization](#compiler-optimization)
 
 ---
 
@@ -69,6 +70,8 @@ func  func!  constraint  namespace  use  match  type  do  end
 true  false  Maybe.None  success  failure
 ```
 
+`Secret` is reserved as a built-in type name.
+
 ---
 
 ## Types
@@ -82,6 +85,7 @@ true  false  Maybe.None  success  failure
 | Boolean | `true`, `false` | Logical values |
 | String | `"hello"`, `'world'` | UTF-8 text |
 | Maybe | `Maybe.Some(v)` / `Maybe.None` | Optional value |
+| Secret | `Secret.wrap(value)` | Opaque secret value |
 
 ### Composite Types
 
@@ -218,6 +222,30 @@ result !? {
 };
 ```
 
+### Maybe and Absence
+
+Calcium has no user-visible `null`. Absence is represented by the built-in
+`Maybe` type:
+
+```calcium
+x = Maybe.Some(42);
+y = Maybe.None;
+
+get({name: "Alice"}, "name");    // Maybe.Some("Alice")
+get({name: "Alice"}, "age");     // Maybe.None
+get({name: "Alice"}, "age", 0);  // 0 (raw default)
+
+head([]);                        // Maybe.None
+```
+
+A missing key or out-of-range index is a runtime error when accessed directly.
+Use `get` for safe lookup. `Maybe.Some` is a first-class function, so it can be
+used with higher-order functions.
+
+JSON `null`, database `NULL`, and TOML values map to `Maybe.None`. A present
+hash key whose value is null is `Maybe.Some(Maybe.None)`. Effect functions with
+no useful value return `success(Maybe.None)`.
+
 ---
 
 ## Gradual Typing
@@ -247,6 +275,7 @@ square = (x: Int): Int => x * x;
 | `String` | String values |
 | `Bool` | Boolean values |
 | `Maybe` | Optional value (`Some` / `None`) |
+| `Secret` | Opaque secret value |
 | `Array` | Array values |
 | `Hash` | Hash values |
 | `Tuple` | Tuple values |
@@ -305,6 +334,7 @@ a < b < c;        // true if a < b and b < c
 |----------|-------------|---------|
 | <code>&#124;></code> | Pipeline | <code>5 &#124;> double</code> -> `double(5)` |
 | `!>` | Effect pipeline | `"hi" !> io.println` |
+| `!!!>` | Secret-authorized effect pipeline | `token !!!> http.post_secret(...)` |
 | <code>&#124;>?</code> | Error propagation | Unwraps success, propagates failure |
 
 ### Other
@@ -371,11 +401,11 @@ result = match condition
 ### ADT Pattern Matching
 
 ```calcium
-type Maybe = Some(value) | None;
+type Tree = Leaf(value) | Node(left, right);
 
-func describe(m) = match m
-  Some(v) => concat("Got: ", to_string(v))
-  None() => "Nothing";
+func describe(t) = match t
+  Leaf(v) => concat("Leaf: ", to_string(v))
+  Node(l, r) => "Node";
 ```
 
 ### Tuple Pattern Matching
@@ -505,17 +535,16 @@ Define variant types with the `type` keyword:
 
 ```calcium
 // Define variant types
-type Maybe = Some(value) | None;
 type Tree = Leaf(value) | Node(left, right);
 
 // Create instances
-x = Some(42);
-y = None;
+x = Leaf(42);
+y = Node(x, Leaf(7));
 
 // Pattern matching with ADT
-func describe(m) = match m
-  Some(v) => concat("Got: ", to_string(v))
-  None() => "Nothing";
+func describe(t) = match t
+  Leaf(v) => concat("Leaf: ", to_string(v))
+  Node(l, r) => "Node";
 ```
 
 ---
@@ -582,6 +611,56 @@ func! process(data) =
   data |>? parse_json |>? validate |>? save;
   // If any step returns failure(), it short-circuits immediately
 ```
+
+---
+
+## Secret Values
+
+Calcium has a built-in opaque `Secret` type. A Secret can wrap any value and
+cannot be printed, serialized, or passed to an ordinary effect.
+
+```calcium
+use core.string;
+
+token = Secret.wrap("  token-123  ");
+normalized = Secret.map(token, s => string.trim(s));
+```
+
+`Secret.map` applies a pure function and keeps the result wrapped.
+
+Secrets are rendered as `<secret>` by `to_string` and string interpolation.
+`json.stringify` and `toml.stringify` return a catchable failure, `len` returns
+a failure, and indexing or string operations are rejected. `secret == other`
+compares identity; there is no `Secret.equal`.
+
+Passing a Secret to an effect requires a capability and the `!!!>` operator
+inside a `Secret.with` scope:
+
+```calcium
+use core.http!;
+
+url = "https://api.example.com/upload";
+cap = Secret.capability(http.post_secret, {url: url});
+token = Secret.wrap("token-123");
+
+result = Secret.with(cap) {
+    token !!!> http.post_secret(url, cap, "text/plain", {})
+};
+```
+
+Only the entry module may create capabilities. The right-hand side of `!!!>`
+must be a named effect function; it may appear at the top level and does not
+require a trailing `!?`.
+
+The runtime also requires the executing module to be allowlisted:
+
+```bash
+calcium run --allow-secret-write=entry main.ca
+```
+
+`CALCIUM_SECRET_WRITE_ALLOW` accepts a comma-separated list. The default is
+deny. See [Secret Values](../secret/) for trusted sinks, module IDs, and the
+full policy.
 
 ---
 
@@ -654,7 +733,7 @@ func _private_function() = "not exported";
 
 | Function | Description |
 |----------|-------------|
-| `string.length(s)` | String length |
+| `string.length(s)` | Length in runes |
 | `string.trim(s)` | Remove whitespace |
 | `string.upper(s)` | Uppercase |
 | `string.lower(s)` | Lowercase |
@@ -664,9 +743,10 @@ func _private_function() = "not exported";
 | `string.starts_with(s, prefix)` | Check prefix |
 | `string.ends_with(s, suffix)` | Check suffix |
 | `string.replace(s, old, new)` | Replace all |
-| `string.substring(s, start, end)` | Extract portion |
+| `string.substring(s, start, end)` | Extract rune-indexed portion |
 | `string.index_of(s, sub)` | Find position |
-| `string.char_at(s, i)` | Character at index |
+| `string.char_at(s, i)` | Rune at index as `Maybe.Some(c)` / `Maybe.None` |
+| `string.from_code(cp)` | Code point to string (returns Result) |
 | `string.repeat(s, n)` | Repeat n times |
 | `string.pad_left(s, len, char)` | Pad left |
 | `string.pad_right(s, len, char)` | Pad right |
@@ -685,7 +765,7 @@ func _private_function() = "not exported";
 | `array.unique(arr)` | Remove duplicates |
 | `array.zip(arr1, arr2)` | Combine into pairs |
 | `array.index_of(arr, elem)` | Find position |
-| `array.find(arr, pred)` | Find matching |
+| `array.find(arr, pred)` | First match as `Maybe.Some(v)` / `Maybe.None` |
 | `array.any(arr, pred)` | Any matches? |
 | `array.all(arr, pred)` | All match? |
 | `array.count(arr, pred)` | Count matches |
@@ -711,7 +791,7 @@ func _private_function() = "not exported";
 | Function | Description |
 |----------|-------------|
 | `toml.parse(s)` | Parse TOML string |
-| `toml.stringify(hash)` | Convert to TOML |
+| `toml.stringify(hash)` | Convert to TOML (fails if a Secret is present) |
 
 ### core.http!
 
@@ -719,6 +799,7 @@ func _private_function() = "not exported";
 |----------|-------------|
 | `http.get(url, headers)` | GET request |
 | `http.post(url, body, type, headers)` | POST request |
+| `http.post_secret(secret, url, cap, type, headers)` | POST a Secret (trusted sink) |
 | `http.put(url, body, type, headers)` | PUT request |
 | `http.del(url, headers)` | DELETE request |
 | `http.request(options)` | Custom request |
@@ -750,7 +831,7 @@ func _private_function() = "not exported";
 
 **Duration constants:** `time.second`, `time.minute`, `time.hour`, `time.day`, `time.week`
 
-### core.os
+### core.os!
 
 | Function | Description |
 |----------|-------------|
@@ -760,6 +841,7 @@ func _private_function() = "not exported";
 | `os.env_all()` | Get all environment variables as hash |
 | `os.args()` | Get command-line arguments |
 | `os.exit(code)` | Terminate process with exit code |
+| `os.proc_write_secret(secret, handle, cap)` | Write a Secret to a process handle (trusted sink) |
 
 ### core.async!
 
@@ -922,6 +1004,9 @@ calcium compile -O2 program.ca -o program.bone
 # Run a program
 calcium program.ca
 calcium run program.ca
+
+# Allow the entry module to write Secrets
+calcium run --allow-secret-write=entry program.ca
 
 # Compile to bytecode
 calcium compile program.ca -o program.bone

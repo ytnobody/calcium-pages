@@ -10,6 +10,7 @@ Official documentation site for the Calcium programming language.
 - [Tutorial](https://ytnobody.github.io/calcium-pages/docs/tutorial/) - Learn Calcium step by step
 - [Modules](https://ytnobody.github.io/calcium-pages/docs/modules/) - Using bone and Boneyard
 - [Reference](https://ytnobody.github.io/calcium-pages/docs/reference/) - Language specification
+- [Secret Values](https://ytnobody.github.io/calcium-pages/docs/secret/) - Capabilities, `!!!>`, and runtime allowlists
 
 ## Related
 

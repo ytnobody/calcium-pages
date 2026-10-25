@@ -51,6 +51,18 @@ pi = 3.14159;
 | Hash | `{name: "Alice"}` | Key-value pairs |
 | Maybe | `Maybe.Some(v)` / `Maybe.None` | Optional value |
 
+### Maybe and Absence
+
+`Maybe` represents a value that may be absent. There is no user-visible `null`.
+
+```calcium
+get({name: "Alice"}, "name");    // Maybe.Some("Alice")
+get({name: "Alice"}, "age");     // Maybe.None
+get({name: "Alice"}, "age", 0);  // 0
+```
+
+Use pattern matching or `unwrap_or` to handle the result.
+
 ### Operators
 
 ```calcium
@@ -436,7 +448,6 @@ mymodule.add(2, 3);  // 5
 Define variant types with the `type` keyword:
 
 ```calcium
-type Maybe = Some(value) | None;
 type Tree = Leaf(value) | Node(left, right);
 ```
 
@@ -444,16 +455,16 @@ type Tree = Leaf(value) | Node(left, right);
 
 ```calcium
 // Create instances
-x = Some(42);
-y = None;
+x = Leaf(42);
+y = Node(x, Leaf(7));
 
 // Pattern matching with ADT
-func describe(m) = match m
-  Some(v) => concat("Got: ", to_string(v))
-  None() => "Nothing";
+func describe(t) = match t
+  Leaf(v) => concat("Leaf: ", to_string(v))
+  Node(l, r) => "Node";
 
-describe(x);  // "Got: 42"
-describe(y);  // "Nothing"
+describe(x);  // "Leaf: 42"
+describe(y);  // "Node"
 ```
 
 ---
@@ -498,7 +509,7 @@ func greet(name: String): String = "Hello, " + name;
 // Lambda type annotations
 square = (x: Int): Int => x * x;
 
-// Available types: Int, Float, String, Bool, Maybe, Array, Hash, Tuple, Func, Regex, Any
+// Available types: Int, Float, String, Bool, Maybe, Secret, Array, Hash, Tuple, Func, Regex, Any
 ```
 
 Type annotations are completely optional. Code without annotations works as before.
@@ -562,3 +573,4 @@ result = async.stay(count: 0) {
 - [Modules Guide](../modules/) - Learn about bone and Boneyard
 - [Language Reference](../reference/) - Complete specification
 - [Standard Library](../stdlib/) - All modules and built-in functions
+- [Secret Values](../secret/) - Capabilities, `!!!>`, and runtime allowlists

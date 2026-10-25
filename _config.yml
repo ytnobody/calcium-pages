@@ -12,6 +12,7 @@ header_pages:
   - docs/modules/index.md
   - docs/stdlib/index.md
   - docs/reference/index.md
+  - docs/secret/index.md
   - search.md
 
 # Markdown settings

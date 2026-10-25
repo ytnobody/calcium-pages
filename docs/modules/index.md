@@ -32,7 +32,7 @@ use core.regex;      // Regular expressions
 use core.toml;       // TOML parsing
 use core.http!;      // HTTP client (effect module)
 use core.time;       // Date/time operations
-use core.os;         // Environment variables, CLI args
+use core.os!;        // Environment variables, CLI args
 use core.async!;     // Async tasks and channels (effect module)
 use core.schedule!;  // Timer event sources (effect module)
 use core.assert!;    // Testing assertions (effect module)
@@ -58,6 +58,29 @@ When you use an external module, Calcium looks in this order:
 2. **Local project** - `calcium_modules/author/module/`
 3. **Global cache** - `~/.calcium/cache/author/module/`
 4. **Remote fetch** - Download from GitHub
+
+### Module IDs for Secret Writes
+
+When a module passes a Secret to a trusted sink, the runtime allowlist refers to
+the module by canonical ID:
+
+| Module | ID |
+|--------|----|
+| Entry module | `entry` |
+| Standard library | `core.http` |
+| Local module | Resolved absolute path |
+| Registry module | `author/name` (no version) |
+| GitHub URL module | `github.com/author/repo` |
+
+Entries starting with `./` or `../` are resolved relative to the entry file's
+directory. A declared namespace does not grant authority. Registry module IDs
+do not include a version in the current implementation, so allowlisting
+`author/name` trusts every installed version of that module.
+
+The runtime allowlist is separate from source imports. A module can be imported
+and still be denied permission to write Secrets. See
+[Secret Values](../secret/) for `--allow-secret-write`, the environment
+variable, and the full policy.
 
 ---
 
@@ -310,6 +333,7 @@ The automated review checks for:
   - Environment variable access
   - HTTP requests
   - File I/O operations
+  - Secret writes are denied unless the operator allowlists the module
 
 ### After Approval
 
