@@ -26,10 +26,11 @@ All three must pass. Source code cannot grant itself runtime authority.
 3. [Capabilities](#capabilities)
 4. [The `!!!>` pipeline](#the-pipeline)
 5. [Trusted sinks](#trusted-sinks)
-6. [Runtime allowlist](#runtime-allowlist)
-7. [End-to-end example](#end-to-end-example)
-8. [Errors](#errors)
-9. [Current limitations](#current-limitations)
+6. [Environment variables are not Secrets](#environment-variables-are-not-secrets)
+7. [Runtime allowlist](#runtime-allowlist)
+8. [End-to-end example](#end-to-end-example)
+9. [Errors](#errors)
+10. [Current limitations](#current-limitations)
 
 ## Creating and transforming Secrets
 
@@ -180,6 +181,31 @@ the capability scope is `{handle: handle}`.
 
 A database secret sink is planned but not implemented. Pure Calcium functions
 cannot declare themselves as trusted sinks.
+
+## Environment variables are not Secrets
+
+`Secret` only protects values that pass through the language. A child process
+launched with `os.proc_start` used to inherit the *entire* parent
+environment - in CI, containers, and PaaS that commonly includes credentials
+(`DB_PASSWORD`, `API_KEY`, ...) that never went through `Secret` at all,
+because the environment never entered the language.
+
+`os.proc_start(cmd, args)` now runs the child with an **empty** environment.
+Pass only the names the child actually needs with `os.proc_start_env`:
+
+```calcium
+os.proc_start_env("psql", ["-c", "select 1"], {"PGHOST": host});
+```
+
+A command without a path separator is still resolved through the parent's
+`PATH` for lookup purposes - that's a lookup, not part of the child's
+environment, so it does not reintroduce the leak.
+
+The lesson generalizes: don't put secret values in environment variables in
+the first place. `Secret`'s protections (timing-safe equality, capability
+gating, redacted `to_string`) only apply to values that are *created* as
+`Secret` inside Calcium; a credential sitting in `os.env_all()` is a plain
+string like any other.
 
 ## Runtime allowlist
 
