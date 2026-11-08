@@ -6,7 +6,7 @@ permalink: /docs/stdlib/
 
 # Standard Library Reference
 
-Comprehensive reference for Calcium's standard library modules and built-in functions (v0.2.34).
+Comprehensive reference for Calcium's standard library modules and built-in functions (v0.2.35).
 
 ## Contents
 
@@ -15,15 +15,16 @@ Comprehensive reference for Calcium's standard library modules and built-in func
 3. [core.io!](#coreio)
 4. [core.math](#coremath)
 5. [core.string](#corestring)
-6. [core.array](#corearray)
-7. [core.regex](#coreregex)
-8. [core.toml](#coretoml)
-9. [core.http!](#corehttp)
-10. [core.time](#coretime)
-11. [core.os!](#coreos)
-12. [core.async!](#coreasync)
-13. [core.schedule!](#coreschedule)
-14. [core.assert!](#coreassert)
+6. [core.bytes](#corebytes)
+7. [core.array](#corearray)
+8. [core.regex](#coreregex)
+9. [core.toml](#coretoml)
+10. [core.http!](#corehttp)
+11. [core.time](#coretime)
+12. [core.os!](#coreos)
+13. [core.async!](#coreasync)
+14. [core.schedule!](#coreschedule)
+15. [core.assert!](#coreassert)
 
 ---
 
@@ -821,6 +822,59 @@ string.pad_right("42", 5, ".");
 
 ---
 
+## core.bytes
+
+Byte-level access to strings. Every operation in `core.string` is rune-based;
+`core.bytes` keeps byte offsets - what the UTF-8 encoding is made of, and
+what source positions are reported in - as an explicit, separate concern
+rather than quietly widening `core.string`'s contract.
+
+```calcium
+use core.bytes;
+```
+
+### `bytes.to_bytes(s)`
+
+Returns the UTF-8 bytes of a string as an array of integers 0-255.
+
+### `bytes.from_bytes(bs)`
+
+Builds a string from an array of byte values (0-255). Bytes are copied
+verbatim, so a run of single bytes reassembles the original UTF-8 text,
+including multi-byte characters.
+
+### `bytes.byte_len(s)`
+
+Returns the length of a string in bytes - generally not the same as its
+length in characters.
+
+```calcium
+use core.bytes;
+
+bytes.byte_len("aアb😀");   // 9
+```
+
+### `bytes.char_count(s)`
+
+Returns the length of a string in Unicode code points.
+
+```calcium
+use core.bytes;
+
+bytes.char_count("aアb😀");   // 4
+```
+
+### `bytes.from_int(v)`
+
+Encodes a signed integer as its eight big-endian two's-complement bytes -
+how the `.bone` format stores integer constants.
+
+### `bytes.from_float(v)`
+
+Encodes a float as its eight big-endian IEEE 754 bytes.
+
+---
+
 ## core.array
 
 Array manipulation functions. All functions return new arrays (arrays are immutable).
@@ -1459,6 +1513,56 @@ use core.os!;
 
 os.exit(0);
 ```
+
+### `os.proc_start(cmd, args)`
+
+Launches a long-lived external program and returns a process handle for
+talking to it over stdin/stdout as a line-delimited text stream. Returns
+`success(handle)` or `failure(message)`.
+
+The child runs with an **empty** environment - it does not inherit this
+process's variables, because those often hold credentials and `Secret`
+cannot protect what never entered the language in the first place. Use
+`os.proc_start_env` to pass specific variables. A command without a path
+separator is still resolved through the parent's `PATH` for lookup purposes.
+
+```calcium
+use core.os!;
+
+os.proc_start("sqlite3", ["app.db"]);   // success(handle)
+```
+
+### `os.proc_start_env(cmd, args, env)`
+
+Like `proc_start`, but passes an explicit environment - a hash of
+`name -> value`. Only the names given are visible to the child.
+
+```calcium
+use core.os!;
+
+os.proc_start_env("psql", ["-c", "select 1"], {"PGHOST": host});
+```
+
+### `os.proc_write(handle, data)`
+
+Writes a string to a process's stdin. Returns `success(true)` or
+`failure(message)`.
+
+### `os.proc_read_line(handle)`
+
+Reads one `\n`-terminated line from a process's stdout. Blocks until data
+is available or the process closes its stdout. Returns `success(line)` or
+`failure(message)`.
+
+### `os.proc_close(handle)`
+
+Forcefully stops a child process and reaps it. Safe to call even if the
+process has already exited. Returns `success(true)`.
+
+### `os.proc_wait(handle)`
+
+Blocks until a process exits and returns its exit code. Returns
+`success(code)` or `failure(message)`.
 
 ### `os.proc_write_secret(secret, handle, cap)`
 

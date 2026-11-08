@@ -6,7 +6,7 @@ permalink: /docs/reference/
 
 # Language Reference
 
-Complete specification of the Calcium programming language (v0.2.34).
+Complete specification of the Calcium programming language (v0.2.35).
 
 ## Contents
 
@@ -302,6 +302,23 @@ Type annotations are optional. Code without annotations continues to work as bef
 | `/` | Division | `15 / 3` -> `5` |
 | `%` | Modulo | `17 % 5` -> `2` |
 
+### Bitwise
+
+Integer-only. Precedence follows Go, not C: `<<`, `>>`, and `&` bind like
+`* / %`; `|` and `^` bind like `+ -`. So `x & 0xFF == 0` reads as
+`(x & 0xFF) == 0`.
+
+| Operator | Description | Example |
+|----------|-------------|---------|
+| `&` | Bitwise AND | `0b1100 & 0b1010` -> `0b1000` |
+| <code>&#124;</code> | Bitwise OR | <code>0b1100 &#124; 0b1010</code> -> `0b1110` |
+| `^` | Bitwise XOR (infix) / NOT (prefix) | `0b1100 ^ 0b1010` -> `0b0110`; `^0` -> `-1` |
+| `<<` | Left shift | `1 << 4` -> `16` |
+| `>>` | Right shift (arithmetic) | `-16 >> 2` -> `-4` |
+
+Shift counts must be non-negative; counts of 64 or more are well defined
+(not undefined behavior, unlike C).
+
 ### Comparison
 
 | Operator | Description | Example |
@@ -372,6 +389,47 @@ result !? {
 };
 ```
 
+Every arm is compared against the subject, including the final one - there is
+no implicit catch-all. A value that matches no arm raises a runtime error
+naming the value (`no match arm matched 8`), so a wildcard arm must be
+written explicitly when one is needed:
+
+```calcium
+// wrong: the second `true` looks like "otherwise" but is compared like
+// every other arm, so it only matches when n < 0 happens to equal true
+func abs(n) = match n < 0
+    true => -n
+    true => n;
+
+// right
+func abs(n) = match n < 0
+    true => -n
+    _ => n;
+```
+
+A `match` can also be used inside a call, an array, a hash, or a group:
+
+```calcium
+f(match x  a => 1  _ => 2);
+[match x  a => 1  _ => 2];
+```
+
+A `match` nested directly in another match's arm body is ended by a case
+indented strictly further left than the nested match's own first case - that
+case belongs to the enclosing match, not the nested one. If a nested match's
+first case lands at the exact column of the enclosing match's cases, both
+readings parse and the parser reports it as `ambiguous nested match` instead
+of silently picking one; indent the inner match further, or wrap it in
+parentheses or a `do ... end` block to disambiguate:
+
+```calcium
+func f(x, y) = match x
+    true => match y
+        true => 1
+        false => 2
+    false => 3;        // belongs to the outer match - less indented than `true => 1`
+```
+
 ### Guard Clauses
 
 Add conditions to match patterns with `if`:
@@ -406,6 +464,29 @@ type Tree = Leaf(value) | Node(left, right);
 func describe(t) = match t
   Leaf(v) => concat("Leaf: ", to_string(v))
   Node(l, r) => "Node";
+```
+
+A constructor pattern's payload position may be a binding name, `_`, or a
+literal (`5`, `"ok"`, `-2`, `3.5`, `true`) to match that exact value instead
+of binding it:
+
+```calcium
+type Msg = Number(value) | Keyword(name);
+
+func describe(m) = match m
+  Number(0) => "zero"       // matches only Number(0)
+  Number(n) => concat("number: ", to_string(n))
+  Keyword("if") => "the if keyword"
+  Keyword(k) => concat("keyword: ", k);
+```
+
+A variant from another module can be matched either by its bare name or by
+its type-qualified spelling:
+
+```calcium
+match shape
+  Circle(r) => ...          // bare
+  Shape.Circle(r) => ...    // type-qualified - same match
 ```
 
 ### Tuple Pattern Matching
@@ -472,14 +553,24 @@ func fib(n) = match n
 
 ### Tail Call Optimization
 
-Calcium automatically optimizes tail-recursive functions for constant stack usage:
+Calcium automatically optimizes tail-recursive functions for constant stack
+usage. A call in tail position is optimized in *any* `match` arm (not only
+the last one) and in a `do` block's final expression - a recursive call that
+is not textually the function's last instruction still gets TCO as long as
+nothing runs after it returns:
 
 ```calcium
-// This function uses constant stack space thanks to TCO
+// This function uses constant stack space thanks to TCO, even though the
+// recursive call sits in a non-final arm
 func sum_helper(arr, acc) = match len(arr)
-    0 => acc
-    _ => sum_helper(tail(arr), acc + head(arr));
+    _ => sum_helper(tail(arr), acc + head(arr))
+    0 => acc;
 ```
+
+Deep non-tail recursion that exhausts the 8,192-frame call stack reports a
+`stack overflow` error with a hint, rather than crashing; the printed stack
+trace is truncated with a `... N frame(s) omitted ...` marker to stay
+readable.
 
 ### Closures
 
@@ -751,6 +842,28 @@ func _private_function() = "not exported";
 | `string.pad_left(s, len, char)` | Pad left |
 | `string.pad_right(s, len, char)` | Pad right |
 
+### core.bytes
+
+Byte-level access to strings, kept separate from `core.string`'s rune-based
+API so the rune/byte distinction stays explicit - a byte-oriented scanner
+needs byte offsets, but `string.length`/`char_at`/`substring` stay
+code-point based.
+
+| Function | Description |
+|----------|-------------|
+| `bytes.to_bytes(s)` | UTF-8 bytes of `s` as an array of ints 0-255 |
+| `bytes.from_bytes(bs)` | Array of bytes -> string (bytes copied verbatim) |
+| `bytes.byte_len(s)` | Length in bytes |
+| `bytes.char_count(s)` | Length in Unicode code points |
+| `bytes.from_int(v)` | Int -> eight big-endian two's-complement bytes |
+| `bytes.from_float(v)` | Float -> eight big-endian IEEE 754 bytes |
+
+```calcium
+use core.bytes;
+
+bytes.byte_len("aアb😀");    // 9 (byte length)
+```
+
 ### core.array
 
 | Function | Description |
@@ -841,7 +954,17 @@ func _private_function() = "not exported";
 | `os.env_all()` | Get all environment variables as hash |
 | `os.args()` | Get command-line arguments |
 | `os.exit(code)` | Terminate process with exit code |
+| `os.proc_start(cmd, args)` | Launch a long-lived external program; returns a process handle. The child runs with an **empty** environment - it does not inherit this process's variables |
+| `os.proc_start_env(cmd, args, env)` | Like `proc_start`, but passes only the given `name -> value` hash as the child's environment |
+| `os.proc_write(handle, data)` | Write a string to a process's stdin |
 | `os.proc_write_secret(secret, handle, cap)` | Write a Secret to a process handle (trusted sink) |
+| `os.proc_read_line(handle)` | Read one line from a process's stdout, blocking until available |
+| `os.proc_close(handle)` | Forcefully stop and reap a child process |
+| `os.proc_wait(handle)` | Block until a process exits and return its exit code |
+
+See [Secret Values](../secret/) for why `proc_start` doesn't inherit the
+environment by default, and `os.proc_start("sqlite3", ["app.db"])` /
+`os.proc_start_env("psql", ["-c", "select 1"], {"PGHOST": host})` for usage.
 
 ### core.async!
 
@@ -1011,6 +1134,9 @@ calcium run --allow-secret-write=entry program.ca
 # Compile to bytecode
 calcium compile program.ca -o program.bone
 
+# Build a standalone executable
+calcium build program.ca -o program
+
 # Run bytecode
 calcium run program.bone
 
@@ -1023,6 +1149,17 @@ calcium repl
 # Format source code
 calcium fmt program.ca
 calcium fmt --check program.ca
+
+# Static analysis without executing (parse errors, gradual-type mismatches,
+# static constraint violations); exits 1 when findings are reported
+calcium lint program.ca
+calcium lint --json program.ca
+
+# Dump the token stream, one token per line: <line>:<column>\t<kind>\t<literal>
+calcium lex program.ca
+
+# Dump type checker findings
+calcium check program.ca
 
 # Start LSP server
 calcium-lsp
